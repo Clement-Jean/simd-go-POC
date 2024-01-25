@@ -1,0 +1,358 @@
+diff --git a/src/cmd/compile/internal/arm64/ssa.go b/src/cmd/compile/internal/arm64/ssa.go
+index a0b432bd97..d9edcffe9a 100644
+--- a/src/cmd/compile/internal/arm64/ssa.go
++++ b/src/cmd/compile/internal/arm64/ssa.go
+@@ -5,6 +5,7 @@
+ package arm64
+ 
+ import (
++	"log"
+ 	"math"
+ 
+ 	"cmd/compile/internal/base"
+@@ -573,6 +574,55 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+ 		p.Reg = v.Args[0].Reg()
+ 		p.To.Type = obj.TYPE_REG
+ 		p.To.Reg = v.Reg()
++	case ssa.OpARM64LoweredSimdAdd:
++		// VLD1 (R1), [V0.D2]
++		// VLD1 (R2), [V1.D2]
++		// VADD V1.B16, V0.B16, V0.B16
++		// VST1 [V0.D2], (R0)
++		log.Println("LOWERING SIMD ADD")
++		// elemSize := v.Args[0].Type.Elem().Elem().Size()
++		// lanes := 16 / elemSize // or 32 for AVX512
++		// regNeeded := lanes / (elemSize * 8)
++		// log.Println("lanes", lanes)
++		// log.Println("vector register needed", regNeeded)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		vld1 := arm64.AVLD1
++		p := s.Prog(vld1)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REGLIST
++		p.To.Offset = arm64.REG_V0 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
++
++		p1 := s.Prog(vld1)
++		p1.From.Type = obj.TYPE_MEM
++		p1.From.Reg = r2
++		p1.To.Type = obj.TYPE_REGLIST
++		p1.To.Offset = arm64.REG_V1 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
++
++		vadd := arm64.AVADD
++		p2 := s.Prog(vadd)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		p2.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++
++		vst1 := arm64.AVST1
++		p3 := s.Prog(vst1)
++		p3.From.Type = obj.TYPE_REGLIST
++		p3.From.Offset = arm64.REG_V0 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
++		p.Link = p1
++		p1.Link = p2
++		p2.Link = p3
++		obj.MarkUnsafePoints(p.Ctxt, p, p.Ctxt.NewProg, func(*obj.Prog) bool { return true }, nil)
++
+ 	case ssa.OpARM64LoweredAtomicExchange64,
+ 		ssa.OpARM64LoweredAtomicExchange32:
+ 		// LDAXR	(Rarg0), Rout
+diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64.rules b/src/cmd/compile/internal/ssa/_gen/ARM64.rules
+index 8cf6f6740e..568722c821 100644
+--- a/src/cmd/compile/internal/ssa/_gen/ARM64.rules
++++ b/src/cmd/compile/internal/ssa/_gen/ARM64.rules
+@@ -556,6 +556,10 @@
+ 
+ (JumpTable idx) => (JUMPTABLE {makeJumpTableSym(b)} idx (MOVDaddr <typ.Uintptr> {makeJumpTableSym(b)} (SB)))
+ 
++// simd intrinsics
++(SimdAddU8x16 ...) => (LoweredSimdAdd ...)
++(SimdAdd8x16 ...) => (LoweredSimdAdd ...)
++
+ // atomic intrinsics
+ // Note: these ops do not accept offset.
+ (AtomicLoad8   ...) => (LDARB ...)
+diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
+index 2853e62540..9ecdfc5337 100644
+--- a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
++++ b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
+@@ -639,6 +639,10 @@ func init() {
+ 		{name: "STLR", argLength: 3, reg: gpstore, asm: "STLR", faultOnNilArg0: true, hasSideEffects: true},
+ 		{name: "STLRW", argLength: 3, reg: gpstore, asm: "STLRW", faultOnNilArg0: true, hasSideEffects: true},
+ 
++		// SIMD wrapping add u8x16.
++		// *arg0 = arg1 + arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdAdd", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
++
+ 		// atomic exchange.
+ 		// store arg1 to arg0. arg2=mem. returns <old content of *arg0, memory>. auxint must be zero.
+ 		// LDAXR	(Rarg0), Rout
+diff --git a/src/cmd/compile/internal/ssa/_gen/genericOps.go b/src/cmd/compile/internal/ssa/_gen/genericOps.go
+index aa5fb0e03e..88011108e0 100644
+--- a/src/cmd/compile/internal/ssa/_gen/genericOps.go
++++ b/src/cmd/compile/internal/ssa/_gen/genericOps.go
+@@ -580,6 +580,10 @@ var genericOps = []opData{
+ 	{name: "SelectNAddr", argLength: 1, aux: "Int64"}, // arg0=result, auxint=field index.  Returns the address of auxint'th member. Used for un-SSA-able result types.
+ 	{name: "MakeResult", argLength: -1},               // arg0 .. are components of a "Result" (like the result from a Call). The last arg should be memory (like the result from a call).
+ 
++	// SIMD
++	{name: "SimdAddU8x16", argLength: 4, typ: "Mem", hasSideEffects: true}, // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
++	{name: "SimdAdd8x16", argLength: 4, typ: "Mem", hasSideEffects: true},  // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
++
+ 	// Atomic operations used for semantically inlining sync/atomic and
+ 	// runtime/internal/atomic. Atomic loads return a new memory so that
+ 	// the loads are properly ordered with respect to other loads and
+diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
+index e7caf9050c..8d2520ee28 100644
+--- a/src/cmd/compile/internal/ssa/opGen.go
++++ b/src/cmd/compile/internal/ssa/opGen.go
+@@ -1687,6 +1687,7 @@ const (
+ 	OpARM64STLRB
+ 	OpARM64STLR
+ 	OpARM64STLRW
++	OpARM64LoweredSimdAdd
+ 	OpARM64LoweredAtomicExchange64
+ 	OpARM64LoweredAtomicExchange32
+ 	OpARM64LoweredAtomicExchange64Variant
+@@ -3150,6 +3151,8 @@ const (
+ 	OpSelectN
+ 	OpSelectNAddr
+ 	OpMakeResult
++	OpSimdAddU8x16
++	OpSimdAdd8x16
+ 	OpAtomicLoad8
+ 	OpAtomicLoad32
+ 	OpAtomicLoad64
+@@ -22486,6 +22489,20 @@ var opcodeTable = [...]opInfo{
+ 			},
+ 		},
+ 	},
++	{
++		name:           "LoweredSimdAdd",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		unsafePoint:    true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
+ 	{
+ 		name:            "LoweredAtomicExchange64",
+ 		argLen:          3,
+@@ -39719,6 +39736,18 @@ var opcodeTable = [...]opInfo{
+ 		argLen:  -1,
+ 		generic: true,
+ 	},
++	{
++		name:           "SimdAddU8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdAdd8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
+ 	{
+ 		name:    "AtomicLoad8",
+ 		argLen:  2,
+diff --git a/src/cmd/compile/internal/ssa/rewriteARM64.go b/src/cmd/compile/internal/ssa/rewriteARM64.go
+index 3b8fe30371..c5060c90bd 100644
+--- a/src/cmd/compile/internal/ssa/rewriteARM64.go
++++ b/src/cmd/compile/internal/ssa/rewriteARM64.go
+@@ -1037,6 +1037,12 @@ func rewriteValueARM64(v *Value) bool {
+ 	case OpSignExt8to64:
+ 		v.Op = OpARM64MOVBreg
+ 		return true
++	case OpSimdAdd8x16:
++		v.Op = OpARM64LoweredSimdAdd
++		return true
++	case OpSimdAddU8x16:
++		v.Op = OpARM64LoweredSimdAdd
++		return true
+ 	case OpSlicemask:
+ 		return rewriteValueARM64_OpSlicemask(v)
+ 	case OpSqrt:
+diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
+index e994577c64..3e6458993a 100644
+--- a/src/cmd/compile/internal/ssagen/ssa.go
++++ b/src/cmd/compile/internal/ssagen/ssa.go
+@@ -4144,6 +4144,14 @@ func InitTables() {
+ 	addF("runtime/internal/sys", "PrefetchStreamed", makePrefetchFunc(ssa.OpPrefetchCacheStreamed),
+ 		sys.AMD64, sys.ARM64, sys.PPC64)
+ 
++	/******** runtime/internal/simd ********/
++	addF("runtime/internal/simd", "Add8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdAdd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.ARM64)
++
+ 	/******** runtime/internal/atomic ********/
+ 	addF("runtime/internal/atomic", "Load",
+ 		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+@@ -4243,7 +4251,6 @@ func InitTables() {
+ 	type atomicOpEmitter func(s *state, n *ir.CallExpr, args []*ssa.Value, op ssa.Op, typ types.Kind)
+ 
+ 	makeAtomicGuardedIntrinsicARM64 := func(op0, op1 ssa.Op, typ, rtyp types.Kind, emit atomicOpEmitter) intrinsicBuilder {
+-
+ 		return func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+ 			// Target Atomic feature is identified by dynamic detection
+ 			addr := s.entryNewValue1A(ssa.OpAddr, types.Types[types.TBOOL].PtrTo(), ir.Syms.ARM64HasATOMICS, s.sb)
+@@ -4871,6 +4878,10 @@ func InitTables() {
+ 	alias("runtime/internal/sys", "Len64", "math/bits", "Len64", all...)
+ 	alias("runtime/internal/sys", "OnesCount64", "math/bits", "OnesCount64", all...)
+ 
++	/******** simd ********/
++	alias("simd", "addU8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64)
++	alias("simd", "add8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64)
++
+ 	/******** sync/atomic ********/
+ 
+ 	// Note: these are disabled by flag_race in findIntrinsic below.
+diff --git a/src/runtime/internal/simd/arithm.go b/src/runtime/internal/simd/arithm.go
+new file mode 100644
+index 0000000000..ce327a1ee3
+--- /dev/null
++++ b/src/runtime/internal/simd/arithm.go
+@@ -0,0 +1,4 @@
++package simd
++
++//go:noescape
++func Add8x16(out, a, b *[16]uint8)
+diff --git a/src/runtime/internal/simd/arithm_arm64.s b/src/runtime/internal/simd/arithm_arm64.s
+new file mode 100644
+index 0000000000..8bc5a84d0d
+--- /dev/null
++++ b/src/runtime/internal/simd/arithm_arm64.s
+@@ -0,0 +1,12 @@
++#include "textflag.h"
++
++// func Add8x16(out, a, b *[16]uint8)
++TEXT ·Add8x16(SB),NOSPLIT,$0-24
++	MOVD out+0(FP), R0
++	MOVD a+8(FP), R1
++	MOVD b+16(FP), R2
++	VLD1 (R1), [V0.D2]
++	VLD1 (R2), [V1.D2]
++	VADD V1.B16, V0.B16, V0.B16
++	VST1 [V0.D2], (R0)
++	RET
+diff --git a/src/runtime/internal/simd/arithm_test.go b/src/runtime/internal/simd/arithm_test.go
+new file mode 100644
+index 0000000000..a9ff609cba
+--- /dev/null
++++ b/src/runtime/internal/simd/arithm_test.go
+@@ -0,0 +1,31 @@
++package simd
++
++import "testing"
++
++func TestAdd8x16(t *testing.T) {
++	a := &[16]uint8{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}
++	b := &[16]uint8{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
++	out := &[16]uint8{}
++
++	Add8x16(out, a, b)
++
++	// check that `a` didn't change
++	for _, d := range a {
++		if d != 2 {
++			t.Fatalf("expected 2, got %d", d)
++		}
++	}
++
++	// check that `b` didn't change
++	for _, d := range b {
++		if d != 255 {
++			t.Fatalf("expected 255, got %d", d)
++		}
++	}
++
++	for _, d := range out {
++		if d != 1 {
++			t.Fatalf("expected 1, got %d", d)
++		}
++	}
++}
+diff --git a/src/simd/asm.s b/src/simd/asm.s
+new file mode 100644
+index 0000000000..5845384976
+--- /dev/null
++++ b/src/simd/asm.s
+@@ -0,0 +1,13 @@
++#include "textflag.h"
++
++TEXT ·addU8x16(SB),NOSPLIT,$0
++	JMP	runtime∕internal∕simd·Add8x16(SB)
++
++TEXT ·add8x16(SB),NOSPLIT,$0
++	JMP	runtime∕internal∕simd·Add8x16(SB)
++
++// TEXT ·addU8x32(SB),NOSPLIT,$0
++// 	JMP	runtime∕internal∕simd·Add8x32(SB)
++
++// TEXT ·add8x32(SB),NOSPLIT,$0
++// 	JMP	runtime∕internal∕simd·Add8x32(SB)
+diff --git a/src/simd/doc.go b/src/simd/doc.go
+new file mode 100644
+index 0000000000..e0deb96aeb
+--- /dev/null
++++ b/src/simd/doc.go
+@@ -0,0 +1,29 @@
++package simd
++
++import "fmt"
++
++//go:noescape
++func addU8x16(out, a, b *[16]uint8)
++
++//go:noescape
++func add8x16(out, a, b *[16]int8)
++
++func AddU8x16(a, b *[16]uint8) *[16]uint8 {
++	out := new([16]uint8)
++	fmt.Printf("a -> %+v\n", a)
++	fmt.Printf("b -> %+v\n", b)
++	fmt.Printf("out -> %+v\n", out)
++	fmt.Printf("------------\n")
++	addU8x16(out, a, b)
++	fmt.Printf("a -> %+v\n", a)
++	fmt.Printf("b -> %+v\n", b)
++	fmt.Printf("out -> %+v\n", out)
++	fmt.Printf("------------\n")
++	return out
++}
++
++func Add8x16(a, b *[16]int8) *[16]int8 {
++	out := new([16]int8)
++	add8x16(out, a, b)
++	return out
++}
+diff --git a/src/simd/types.go b/src/simd/types.go
+new file mode 100644
+index 0000000000..9685e4c038
+--- /dev/null
++++ b/src/simd/types.go
+@@ -0,0 +1,4 @@
++package simd
++
++// A SIMD vector with 16 elements of type uint8
++type Uint8x16 = *[16]uint8
