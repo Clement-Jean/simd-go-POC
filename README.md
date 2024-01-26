@@ -2,6 +2,8 @@
 
 This repository is an attempt at adding SIMD to go through compiler intrinsics.
 
+:warning: It only works on ARM64 for now :warning:
+
 ## Build
 
 ```
