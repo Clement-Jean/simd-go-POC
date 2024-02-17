@@ -1,5 +1,5 @@
 diff --git a/src/cmd/compile/internal/arm64/ssa.go b/src/cmd/compile/internal/arm64/ssa.go
-index a0b432bd97..d9edcffe9a 100644
+index a0b432bd97..a4a50ac14e 100644
 --- a/src/cmd/compile/internal/arm64/ssa.go
 +++ b/src/cmd/compile/internal/arm64/ssa.go
 @@ -5,6 +5,7 @@
@@ -10,7 +10,7 @@ index a0b432bd97..d9edcffe9a 100644
  	"math"
  
  	"cmd/compile/internal/base"
-@@ -573,6 +574,55 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+@@ -573,6 +574,45 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
  		p.Reg = v.Args[0].Reg()
  		p.To.Type = obj.TYPE_REG
  		p.To.Reg = v.Reg()
@@ -20,11 +20,6 @@ index a0b432bd97..d9edcffe9a 100644
 +		// VADD V1.B16, V0.B16, V0.B16
 +		// VST1 [V0.D2], (R0)
 +		log.Println("LOWERING SIMD ADD")
-+		// elemSize := v.Args[0].Type.Elem().Elem().Size()
-+		// lanes := 16 / elemSize // or 32 for AVX512
-+		// regNeeded := lanes / (elemSize * 8)
-+		// log.Println("lanes", lanes)
-+		// log.Println("vector register needed", regNeeded)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
@@ -57,11 +52,6 @@ index a0b432bd97..d9edcffe9a 100644
 +		p3.From.Offset = arm64.REG_V0 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
 +		p3.To.Type = obj.TYPE_MEM
 +		p3.To.Reg = r0
-+
-+		p.Link = p1
-+		p1.Link = p2
-+		p2.Link = p3
-+		obj.MarkUnsafePoints(p.Ctxt, p, p.Ctxt.NewProg, func(*obj.Prog) bool { return true }, nil)
 +
  	case ssa.OpARM64LoweredAtomicExchange64,
  		ssa.OpARM64LoweredAtomicExchange32:
