@@ -1,11 +1,7 @@
 package simd
 
-import "fmt"
-
-//go:noescape
 func addU8x16(out, a, b *[16]uint8)
 
-//go:noescape
 func add8x16(out, a, b *[16]int8)
 
 func AddU8x16(a, b *[16]uint8) *[16]uint8 {
