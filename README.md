@@ -20,7 +20,7 @@ pushd go && ../build.sh && popd
 From root, execute:
 
 ```
-GOSSAFUNC=main go/bin/go run .
+GOSSAFUNC=AddU8x16 go/bin/go run .
 ```
 
 you will get a file called ssa.html, just open that in your browser
