@@ -9,6 +9,12 @@ This repository is an attempt at adding SIMD to go through compiler intrinsics.
 - patches -> patching existing files
 - overlays -> new dirs+files
 
+## Init
+
+```
+git submodule update --init --recursive
+```
+
 ## Build
 
 ```
