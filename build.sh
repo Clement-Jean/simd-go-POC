@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # CD into the Go source
-pushd "$(dirname -- "$0")"/go
+pushd "$(dirname -- "$0")"/go || exit
 
 # Update Go
 RELEASE_BRANCH="release-branch.go1.21"
@@ -14,5 +14,5 @@ git apply --ignore-space-change --ignore-whitespace --3way ../patches/*.diff
 cp -p -P -v -R ../overlays/* ./
 
 # Build Go
-pushd "src"
+pushd "src" || exit
 ./make.bash
