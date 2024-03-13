@@ -1,5 +1,5 @@
 diff --git a/src/cmd/compile/internal/arm64/ssa.go b/src/cmd/compile/internal/arm64/ssa.go
-index a0b432bd97..a4a50ac14e 100644
+index a0b432bd97..21ff9e0fee 100644
 --- a/src/cmd/compile/internal/arm64/ssa.go
 +++ b/src/cmd/compile/internal/arm64/ssa.go
 @@ -5,6 +5,7 @@
@@ -30,13 +30,13 @@ index a0b432bd97..a4a50ac14e 100644
 +		p.From.Type = obj.TYPE_MEM
 +		p.From.Reg = r1
 +		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = arm64.REG_V0 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
++		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
 +
 +		p1 := s.Prog(vld1)
 +		p1.From.Type = obj.TYPE_MEM
 +		p1.From.Reg = r2
 +		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = arm64.REG_V1 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
++		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
 +
 +		vadd := arm64.AVADD
 +		p2 := s.Prog(vadd)
@@ -49,7 +49,7 @@ index a0b432bd97..a4a50ac14e 100644
 +		vst1 := arm64.AVST1
 +		p3 := s.Prog(vst1)
 +		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = arm64.REG_V0 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
++		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
 +		p3.To.Type = obj.TYPE_MEM
 +		p3.To.Reg = r0
 +
@@ -72,7 +72,7 @@ index 8cf6f6740e..568722c821 100644
  // Note: these ops do not accept offset.
  (AtomicLoad8   ...) => (LDARB ...)
 diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
-index 2853e62540..9ecdfc5337 100644
+index 2853e62540..2df27fe21c 100644
 --- a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
 +++ b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
 @@ -639,6 +639,10 @@ func init() {
@@ -81,7 +81,7 @@ index 2853e62540..9ecdfc5337 100644
  
 +		// SIMD wrapping add u8x16.
 +		// *arg0 = arg1 + arg2. arg3=mem. returns memory.
-+		{name: "LoweredSimdAdd", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
++		{name: "LoweredSimdAdd", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
 +
  		// atomic exchange.
  		// store arg1 to arg0. arg2=mem. returns <old content of *arg0, memory>. auxint must be zero.
@@ -102,7 +102,7 @@ index aa5fb0e03e..88011108e0 100644
  	// runtime/internal/atomic. Atomic loads return a new memory so that
  	// the loads are properly ordered with respect to other loads and
 diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
-index e7caf9050c..8d2520ee28 100644
+index e7caf9050c..e025a417e1 100644
 --- a/src/cmd/compile/internal/ssa/opGen.go
 +++ b/src/cmd/compile/internal/ssa/opGen.go
 @@ -1687,6 +1687,7 @@ const (
@@ -122,7 +122,7 @@ index e7caf9050c..8d2520ee28 100644
  	OpAtomicLoad8
  	OpAtomicLoad32
  	OpAtomicLoad64
-@@ -22486,6 +22489,20 @@ var opcodeTable = [...]opInfo{
+@@ -22486,6 +22489,19 @@ var opcodeTable = [...]opInfo{
  			},
  		},
  	},
@@ -131,7 +131,6 @@ index e7caf9050c..8d2520ee28 100644
 +		argLen:         4,
 +		faultOnNilArg0: true,
 +		hasSideEffects: true,
-+		unsafePoint:    true,
 +		reg: regInfo{
 +			inputs: []inputInfo{
 +				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
@@ -143,7 +142,7 @@ index e7caf9050c..8d2520ee28 100644
  	{
  		name:            "LoweredAtomicExchange64",
  		argLen:          3,
-@@ -39719,6 +39736,18 @@ var opcodeTable = [...]opInfo{
+@@ -39719,6 +39735,18 @@ var opcodeTable = [...]opInfo{
  		argLen:  -1,
  		generic: true,
  	},
