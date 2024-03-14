@@ -1,34 +1,34 @@
-Add8x16 Patch (arm64)
+Sub8x16 Patch (arm64)
 ====================
 
-The goal of this patch is to generate VADD instructions when simd.Add8x16
-or simd.AddU8x16 are called.
+The goal of this patch is to generate VSUB instructions when simd.Sub8x16
+or simd.SubU8x16 are called.
 
 For example:
 
 a := &[16]uint8{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
 b := &[16]uint8{17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
-c := simd.AddU8x16(a, b)
+c := simd.SubU8x16(a, b)
 
-Will generate the following Go ASM (for AddU8x16):
+Will generate the following Go ASM (for SubU8x16):
 
 VLD1 (R1), [V0.D2]
 VLD1 (R2), [V1.D2]
-VADD V1.B16, V0.B16, V0.B16
+VSUB V1.B16, V0.B16, V0.B16
 VST1 [V0.D2], (R0)
 
 diff --git a/src/cmd/compile/internal/arm64/ssa.go b/src/cmd/compile/internal/arm64/ssa.go
-index a0b432bd97..2529e120d7 100644
+index 2529e120d7..203542459c 100644
 --- a/src/cmd/compile/internal/arm64/ssa.go
 +++ b/src/cmd/compile/internal/arm64/ssa.go
-@@ -573,6 +573,44 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
- 		p.Reg = v.Args[0].Reg()
- 		p.To.Type = obj.TYPE_REG
- 		p.To.Reg = v.Reg()
-+	case ssa.OpARM64LoweredSimdAdd8x16:
+@@ -611,6 +611,44 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+ 		p3.To.Type = obj.TYPE_MEM
+ 		p3.To.Reg = r0
+ 
++	case ssa.OpARM64LoweredSimdSub8x16:
 +		// VLD1 (R1), [V0.D2]
 +		// VLD1 (R2), [V1.D2]
-+		// VADD V1.B16, V0.B16, V0.B16
++		// VSUB V1.B16, V0.B16, V0.B16
 +		// VST1 [V0.D2], (R0)
 +
 +		r0 := v.Args[0].Reg()
@@ -48,8 +48,8 @@ index a0b432bd97..2529e120d7 100644
 +		p1.To.Type = obj.TYPE_REGLIST
 +		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
 +
-+		vadd := arm64.AVADD
-+		p2 := s.Prog(vadd)
++		vsub := arm64.AVSUB
++		p2 := s.Prog(vsub)
 +		p2.From.Type = obj.TYPE_REG
 +		p2.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
 +		p2.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
@@ -67,77 +67,73 @@ index a0b432bd97..2529e120d7 100644
  		ssa.OpARM64LoweredAtomicExchange32:
  		// LDAXR	(Rarg0), Rout
 diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64.rules b/src/cmd/compile/internal/ssa/_gen/ARM64.rules
-index 8cf6f6740e..568722c821 100644
+index 2ab5109fef..fd2799aea3 100644
 --- a/src/cmd/compile/internal/ssa/_gen/ARM64.rules
 +++ b/src/cmd/compile/internal/ssa/_gen/ARM64.rules
-@@ -556,6 +556,10 @@
+@@ -559,6 +559,8 @@
+ // simd intrinsics
+ (SimdAddU8x16 ...) => (LoweredSimdAdd8x16 ...)
+ (SimdAdd8x16 ...) => (LoweredSimdAdd8x16 ...)
++(SimdSubU8x16 ...) => (LoweredSimdSub8x16 ...)
++(SimdSub8x16 ...) => (LoweredSimdSub8x16 ...)
  
- (JumpTable idx) => (JUMPTABLE {makeJumpTableSym(b)} idx (MOVDaddr <typ.Uintptr> {makeJumpTableSym(b)} (SB)))
- 
-+// simd intrinsics
-+(SimdAddU8x16 ...) => (LoweredSimdAdd ...)
-+(SimdAdd8x16 ...) => (LoweredSimdAdd ...)
-+
  // atomic intrinsics
  // Note: these ops do not accept offset.
- (AtomicLoad8   ...) => (LDARB ...)
 diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
-index 2853e62540..2df27fe21c 100644
+index d7039ffa24..d85dcbb939 100644
 --- a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
 +++ b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
-@@ -639,6 +639,10 @@ func init() {
- 		{name: "STLR", argLength: 3, reg: gpstore, asm: "STLR", faultOnNilArg0: true, hasSideEffects: true},
- 		{name: "STLRW", argLength: 3, reg: gpstore, asm: "STLRW", faultOnNilArg0: true, hasSideEffects: true},
+@@ -643,6 +643,10 @@ func init() {
+ 		// *arg0 = arg1 + arg2. arg3=mem. returns memory.
+ 		{name: "LoweredSimdAdd8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
  
-+		// SIMD wrapping add u8x16.
-+		// *arg0 = arg1 + arg2. arg3=mem. returns memory.
-+		{name: "LoweredSimdAdd", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++		// SIMD wrapping sub u8x16.
++		// *arg0 = arg1 - arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdSub8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
 +
  		// atomic exchange.
  		// store arg1 to arg0. arg2=mem. returns <old content of *arg0, memory>. auxint must be zero.
  		// LDAXR	(Rarg0), Rout
 diff --git a/src/cmd/compile/internal/ssa/_gen/genericOps.go b/src/cmd/compile/internal/ssa/_gen/genericOps.go
-index aa5fb0e03e..88011108e0 100644
+index 88011108e0..d70d83fb14 100644
 --- a/src/cmd/compile/internal/ssa/_gen/genericOps.go
 +++ b/src/cmd/compile/internal/ssa/_gen/genericOps.go
-@@ -580,6 +580,10 @@ var genericOps = []opData{
- 	{name: "SelectNAddr", argLength: 1, aux: "Int64"}, // arg0=result, auxint=field index.  Returns the address of auxint'th member. Used for un-SSA-able result types.
- 	{name: "MakeResult", argLength: -1},               // arg0 .. are components of a "Result" (like the result from a Call). The last arg should be memory (like the result from a call).
+@@ -583,6 +583,8 @@ var genericOps = []opData{
+ 	// SIMD
+ 	{name: "SimdAddU8x16", argLength: 4, typ: "Mem", hasSideEffects: true}, // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
+ 	{name: "SimdAdd8x16", argLength: 4, typ: "Mem", hasSideEffects: true},  // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
++	{name: "SimdSubU8x16", argLength: 4, typ: "Mem", hasSideEffects: true}, // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
++	{name: "SimdSub8x16", argLength: 4, typ: "Mem", hasSideEffects: true},  // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
  
-+	// SIMD
-+	{name: "SimdAddU8x16", argLength: 4, typ: "Mem", hasSideEffects: true}, // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdAdd8x16", argLength: 4, typ: "Mem", hasSideEffects: true},  // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
-+
  	// Atomic operations used for semantically inlining sync/atomic and
  	// runtime/internal/atomic. Atomic loads return a new memory so that
- 	// the loads are properly ordered with respect to other loads and
 diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
-index e7caf9050c..d5654a4a33 100644
+index 99f4855924..f4e12e3832 100644
 --- a/src/cmd/compile/internal/ssa/opGen.go
 +++ b/src/cmd/compile/internal/ssa/opGen.go
-@@ -1687,6 +1687,7 @@ const (
- 	OpARM64STLRB
+@@ -1688,6 +1688,7 @@ const (
  	OpARM64STLR
  	OpARM64STLRW
-+	OpARM64LoweredSimdAdd8x16
+ 	OpARM64LoweredSimdAdd8x16
++	OpARM64LoweredSimdSub8x16
  	OpARM64LoweredAtomicExchange64
  	OpARM64LoweredAtomicExchange32
  	OpARM64LoweredAtomicExchange64Variant
-@@ -3150,6 +3151,8 @@ const (
- 	OpSelectN
- 	OpSelectNAddr
+@@ -3153,6 +3154,8 @@ const (
  	OpMakeResult
-+	OpSimdAddU8x16
-+	OpSimdAdd8x16
+ 	OpSimdAddU8x16
+ 	OpSimdAdd8x16
++	OpSimdSubU8x16
++	OpSimdSub8x16
  	OpAtomicLoad8
  	OpAtomicLoad32
  	OpAtomicLoad64
-@@ -22486,6 +22489,19 @@ var opcodeTable = [...]opInfo{
+@@ -22502,6 +22505,19 @@ var opcodeTable = [...]opInfo{
  			},
  		},
  	},
 +	{
-+		name:           "LoweredSimdAdd",
++		name:           "LoweredSimdSub8x16",
 +		argLen:         4,
 +		faultOnNilArg0: true,
 +		hasSideEffects: true,
@@ -152,18 +148,18 @@ index e7caf9050c..d5654a4a33 100644
  	{
  		name:            "LoweredAtomicExchange64",
  		argLen:          3,
-@@ -39719,6 +39735,18 @@ var opcodeTable = [...]opInfo{
- 		argLen:  -1,
- 		generic: true,
+@@ -39747,6 +39763,18 @@ var opcodeTable = [...]opInfo{
+ 		hasSideEffects: true,
+ 		generic:        true,
  	},
 +	{
-+		name:           "SimdAddU8x16",
++		name:           "SimdSubU8x16",
 +		argLen:         4,
 +		hasSideEffects: true,
 +		generic:        true,
 +	},
 +	{
-+		name:           "SimdAdd8x16",
++		name:           "SimdSub8x16",
 +		argLen:         4,
 +		hasSideEffects: true,
 +		generic:        true,
@@ -172,57 +168,45 @@ index e7caf9050c..d5654a4a33 100644
  		name:    "AtomicLoad8",
  		argLen:  2,
 diff --git a/src/cmd/compile/internal/ssa/rewriteARM64.go b/src/cmd/compile/internal/ssa/rewriteARM64.go
-index 3b8fe30371..8887aaf5f0 100644
+index 8887aaf5f0..2e01c92ccb 100644
 --- a/src/cmd/compile/internal/ssa/rewriteARM64.go
 +++ b/src/cmd/compile/internal/ssa/rewriteARM64.go
-@@ -1037,6 +1037,12 @@ func rewriteValueARM64(v *Value) bool {
- 	case OpSignExt8to64:
- 		v.Op = OpARM64MOVBreg
+@@ -1043,6 +1043,12 @@ func rewriteValueARM64(v *Value) bool {
+ 	case OpSimdAddU8x16:
+ 		v.Op = OpARM64LoweredSimdAdd8x16
  		return true
-+	case OpSimdAdd8x16:
-+		v.Op = OpARM64LoweredSimdAdd8x16
++	case OpSimdSub8x16:
++		v.Op = OpARM64LoweredSimdSub8x16
 +		return true
-+	case OpSimdAddU8x16:
-+		v.Op = OpARM64LoweredSimdAdd8x16
++	case OpSimdSubU8x16:
++		v.Op = OpARM64LoweredSimdSub8x16
 +		return true
  	case OpSlicemask:
  		return rewriteValueARM64_OpSlicemask(v)
  	case OpSqrt:
 diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
-index e994577c64..3e6458993a 100644
+index 3e6458993a..4db36b9c7f 100644
 --- a/src/cmd/compile/internal/ssagen/ssa.go
 +++ b/src/cmd/compile/internal/ssagen/ssa.go
-@@ -4144,6 +4144,14 @@ func InitTables() {
- 	addF("runtime/internal/sys", "PrefetchStreamed", makePrefetchFunc(ssa.OpPrefetchCacheStreamed),
- 		sys.AMD64, sys.ARM64, sys.PPC64)
- 
-+	/******** runtime/internal/simd ********/
-+	addF("runtime/internal/simd", "Add8x16",
+@@ -4151,6 +4151,12 @@ func InitTables() {
+ 			return nil
+ 		},
+ 		sys.ARM64)
++	addF("runtime/internal/simd", "Sub8x16",
 +		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
-+			s.vars[memVar] = s.newValue4(ssa.OpSimdAdd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			s.vars[memVar] = s.newValue4(ssa.OpSimdSub8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
 +			return nil
 +		},
 +		sys.ARM64)
-+
+ 
  	/******** runtime/internal/atomic ********/
  	addF("runtime/internal/atomic", "Load",
- 		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
-@@ -4243,7 +4251,6 @@ func InitTables() {
- 	type atomicOpEmitter func(s *state, n *ir.CallExpr, args []*ssa.Value, op ssa.Op, typ types.Kind)
+@@ -4881,6 +4887,8 @@ func InitTables() {
+ 	/******** simd ********/
+ 	alias("simd", "addU8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64)
+ 	alias("simd", "add8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64)
++	alias("simd", "subU8x16", "runtime/internal/simd", "Sub8x16", sys.ArchARM64)
++	alias("simd", "sub8x16", "runtime/internal/simd", "Sub8x16", sys.ArchARM64)
  
- 	makeAtomicGuardedIntrinsicARM64 := func(op0, op1 ssa.Op, typ, rtyp types.Kind, emit atomicOpEmitter) intrinsicBuilder {
--
- 		return func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
- 			// Target Atomic feature is identified by dynamic detection
- 			addr := s.entryNewValue1A(ssa.OpAddr, types.Types[types.TBOOL].PtrTo(), ir.Syms.ARM64HasATOMICS, s.sb)
-@@ -4871,6 +4878,10 @@ func InitTables() {
- 	alias("runtime/internal/sys", "Len64", "math/bits", "Len64", all...)
- 	alias("runtime/internal/sys", "OnesCount64", "math/bits", "OnesCount64", all...)
- 
-+	/******** simd ********/
-+	alias("simd", "addU8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64)
-+	alias("simd", "add8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64)
-+
  	/******** sync/atomic ********/
  
- 	// Note: these are disabled by flag_race in findIntrinsic below.
