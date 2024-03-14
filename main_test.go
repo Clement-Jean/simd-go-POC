@@ -24,6 +24,7 @@ func BenchmarkAddU8x16For(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		d = new([16]uint8)
 		for i := 0; i < len(a); i++ {
 			d[i] = a[i] + c[i]
 		}
