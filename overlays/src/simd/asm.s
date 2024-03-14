@@ -6,8 +6,20 @@ TEXT ·addU8x16(SB),NOSPLIT,$0
 TEXT ·add8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·Add8x16(SB)
 
-// TEXT ·addU8x32(SB),NOSPLIT,$0
-// 	JMP	runtime∕internal∕simd·Add8x32(SB)
+TEXT ·saturatingAddU8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·SaturatingAddU8x16(SB)
 
-// TEXT ·add8x32(SB),NOSPLIT,$0
-// 	JMP	runtime∕internal∕simd·Add8x32(SB)
+TEXT ·saturatingAdd8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·SaturatingAdd8x16(SB)
+
+TEXT ·subU8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·Sub8x16(SB)
+
+TEXT ·sub8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·Sub8x16(SB)
+
+TEXT ·saturatingSubU8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·SaturatingSubU8x16(SB)
+
+TEXT ·saturatingSub8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·SaturatingSub8x16(SB)
