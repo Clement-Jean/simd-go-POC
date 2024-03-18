@@ -30,13 +30,13 @@ This proposal mainly propose two things:
 For the first point, I was thinking about something like the following:
 
 ```go
-// +simd sse2
+//go:simd sse2
 ```
 ``` go
-// +simd neon
+//go:simd neon
 ```
 ```go
-// +simd avx512
+//go:simd avx512
 ```
 
 etc.
