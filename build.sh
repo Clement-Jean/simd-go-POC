@@ -4,14 +4,14 @@
 pushd "$(dirname -- "$0")"/go || exit
 
 # Update Go
-RELEASE_BRANCH="release-branch.go1.21"
+RELEASE_BRANCH="release-branch.go1.22"
 git fetch origin "$RELEASE_BRANCH"
 git checkout -f "$RELEASE_BRANCH"
 git reset --hard origin/"$RELEASE_BRANCH"
 
 # Patch Go
 git apply --ignore-space-change --ignore-whitespace --3way ../patches/*.diff
-git checkout --theirs .
+git checkout --theirs . # resolve conflicts
 cp -p -P -v -R ../overlays/* ./
 
 # Build Go
