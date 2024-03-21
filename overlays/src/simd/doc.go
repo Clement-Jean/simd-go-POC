@@ -79,3 +79,35 @@ func And8x16(a, b *[16]int8) *[16]int8 {
 	and8x16(out, a, b)
 	return out
 }
+
+func orU8x16(out, a, b *[16]uint8)
+
+func or8x16(out, a, b *[16]int8)
+
+func OrU8x16(a, b *[16]uint8) *[16]uint8 {
+	out := new([16]uint8)
+	orU8x16(out, a, b)
+	return out
+}
+
+func Or8x16(a, b *[16]int8) *[16]int8 {
+	out := new([16]int8)
+	or8x16(out, a, b)
+	return out
+}
+
+func xorU8x16(out, a, b *[16]uint8)
+
+func xor8x16(out, a, b *[16]int8)
+
+func XorU8x16(a, b *[16]uint8) *[16]uint8 {
+	out := new([16]uint8)
+	xorU8x16(out, a, b)
+	return out
+}
+
+func Xor8x16(a, b *[16]int8) *[16]int8 {
+	out := new([16]int8)
+	xor8x16(out, a, b)
+	return out
+}

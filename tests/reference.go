@@ -105,3 +105,43 @@ func referenceAndU8x16(a, b *[16]uint8) *[16]uint8 {
 	)
 	return result
 }
+
+func referenceOr8x16(a, b *[16]int8) *[16]int8 {
+	result := new([16]int8)
+	internal.VorrqS8(
+		(*internal.Int8x16)(unsafe.Pointer(result)),
+		(*internal.Int8x16)(unsafe.Pointer(a)),
+		(*internal.Int8x16)(unsafe.Pointer(b)),
+	)
+	return result
+}
+
+func referenceOrU8x16(a, b *[16]uint8) *[16]uint8 {
+	result := new([16]uint8)
+	internal.VorrqU8(
+		(*internal.Uint8x16)(unsafe.Pointer(result)),
+		(*internal.Uint8x16)(unsafe.Pointer(a)),
+		(*internal.Uint8x16)(unsafe.Pointer(b)),
+	)
+	return result
+}
+
+func referenceXor8x16(a, b *[16]int8) *[16]int8 {
+	result := new([16]int8)
+	internal.VeorqS8(
+		(*internal.Int8x16)(unsafe.Pointer(result)),
+		(*internal.Int8x16)(unsafe.Pointer(a)),
+		(*internal.Int8x16)(unsafe.Pointer(b)),
+	)
+	return result
+}
+
+func referenceXorU8x16(a, b *[16]uint8) *[16]uint8 {
+	result := new([16]uint8)
+	internal.VeorqU8(
+		(*internal.Uint8x16)(unsafe.Pointer(result)),
+		(*internal.Uint8x16)(unsafe.Pointer(a)),
+		(*internal.Uint8x16)(unsafe.Pointer(b)),
+	)
+	return result
+}
