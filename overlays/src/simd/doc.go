@@ -63,3 +63,19 @@ func SaturatingSub8x16(a, b *[16]int8) *[16]int8 {
 	saturatingSub8x16(out, a, b)
 	return out
 }
+
+func andU8x16(out, a, b *[16]uint8)
+
+func and8x16(out, a, b *[16]int8)
+
+func AndU8x16(a, b *[16]uint8) *[16]uint8 {
+	out := new([16]uint8)
+	andU8x16(out, a, b)
+	return out
+}
+
+func And8x16(a, b *[16]int8) *[16]int8 {
+	out := new([16]int8)
+	and8x16(out, a, b)
+	return out
+}

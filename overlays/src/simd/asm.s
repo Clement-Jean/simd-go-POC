@@ -23,3 +23,9 @@ TEXT ·saturatingSubU8x16(SB),NOSPLIT,$0
 
 TEXT ·saturatingSub8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·SaturatingSub8x16(SB)
+
+TEXT ·andU8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·And8x16(SB)
+
+TEXT ·and8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·And8x16(SB)

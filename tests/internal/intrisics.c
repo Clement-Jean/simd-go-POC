@@ -8,3 +8,5 @@ void VsubqS8(int8x16_t* r, int8x16_t* v0, int8x16_t* v1) { *r = vsubq_s8(*v0, *v
 void VsubqU8(uint8x16_t* r, uint8x16_t* v0, uint8x16_t* v1) { *r = vsubq_u8(*v0, *v1); }
 void VqsubqS8(int8x16_t* r, int8x16_t* v0, int8x16_t* v1) { *r = vqsubq_s8(*v0, *v1); }
 void VqsubqU8(uint8x16_t* r, uint8x16_t* v0, uint8x16_t* v1) { *r = vqsubq_u8(*v0, *v1); }
+void VandqS8(int8x16_t* r, int8x16_t* v0, int8x16_t* v1) { *r = vandq_s8(*v0, *v1); }
+void VandqU8(uint8x16_t* r, uint8x16_t* v0, uint8x16_t* v1) { *r = vandq_u8(*v0, *v1); }

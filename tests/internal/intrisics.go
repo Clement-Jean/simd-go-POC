@@ -48,3 +48,11 @@ func VqsubqS8(r, v0, v1 *Int8x16)
 //go:linkname VqsubqU8 VqsubqU8
 //go:noescape
 func VqsubqU8(r, v0, v1 *Uint8x16)
+
+//go:linkname VandqS8 VandqS8
+//go:noescape
+func VandqS8(r, v0, v1 *Int8x16)
+
+//go:linkname VandqU8 VandqU8
+//go:noescape
+func VandqU8(r, v0, v1 *Uint8x16)
