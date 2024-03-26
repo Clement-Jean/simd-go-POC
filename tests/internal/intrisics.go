@@ -80,3 +80,11 @@ func VmaxvqS8(r *Int8, v0 *Int8x16)
 //go:linkname VmaxvqU8 VmaxvqU8
 //go:noescape
 func VmaxvqU8(r *Uint8, v0 *Uint8x16)
+
+//go:linkname VminvqS8 VminvqS8
+//go:noescape
+func VminvqS8(r *Int8, v0 *Int8x16)
+
+//go:linkname VminvqU8 VminvqU8
+//go:noescape
+func VminvqU8(r *Uint8, v0 *Uint8x16)
