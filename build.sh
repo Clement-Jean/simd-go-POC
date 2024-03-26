@@ -11,7 +11,6 @@ git reset --hard origin/"$RELEASE_BRANCH"
 
 # Patch Go
 git apply --ignore-space-change --ignore-whitespace --3way ../patches/*.diff
-git checkout --theirs . # resolve conflicts
 cp -p -P -v -R ../overlays/* ./
 
 # Build Go
