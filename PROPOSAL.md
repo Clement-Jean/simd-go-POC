@@ -27,7 +27,7 @@ This proposal mainly propose two things:
 
 ### Build Tag
 
-For the first point, I was thinking about something like the following:
+For the first point, I was thinking about optional build tags like the following:
 
 ```go
 //go:simd sse2
@@ -41,22 +41,24 @@ For the first point, I was thinking about something like the following:
 
 etc.
 
-This would let the developer choose at compile time which SIMD ISA to target. We could write something similar to:
+As mentionned, these build tags are optional. If not specified, we would resolve to the most recent SIMD ISA available on the current OS and ARCH. However, I still think that these build tags are needed for deeper optimization. If we know that some instruction is more performant on a certain architecture, we should be able to use it instead.
+
+Finally, having a build tag would let the developer choose at compile time which SIMD ISA to target and thus cross compile. We could write something similar to:
 
     $ go build -simd neon
 
-And as such, we could take advantage of platform specific features and know at compile time the size of the vector registers (e.g. 128 or 256 bits). This would help us make better decisions for optimizations.
+With this, we could take advantage of platform specific features and know at compile time the size of the vector registers (e.g. 128 or 256 bits). This would help us make better decisions for optimizations.
 
 ### Compiler Intrinsics
 
-The next crucial step would be to create a portable SIMD package that would rely on the compiler to generate SIMD instruction through compiler intrinsics. I demonstrated that this is feasible with a [POC](https://github.com/Clement-Jean/simd-go-POC) (only working on ARM64 NEON for now). As of right now, it looks like the following (you can see more examples [here](https://github.com/Clement-Jean/simd-go-POC/blob/main/tests/arithm_test.go)):
+The next crucial step would be to create a portable SIMD package that would rely on the compiler to generate SIMD instructions through compiler intrinsics. I demonstrated that this is feasible with a [POC](https://github.com/Clement-Jean/simd-go-POC) (only working on ARM64 NEON for now). As of right now, it looks like the following (you can see more examples [here](https://github.com/Clement-Jean/simd-go-POC/blob/main/tests/arithm_test.go)):
 
 ```go
 package main
 
 import (
-    "fmt"
-    "simd"
+	"fmt"
+	"simd"
 )
 
 func main() {
@@ -81,7 +83,7 @@ There are a few things to note:
 
 ## Challenges to Overcome
 
--   You might have noticed that the previous code snippet contained pointer on arrays and not arrays. This is because fixed-size arrays are not SSAable for now. I do not know much about why but @randall77 taught me this when I was working on the POC.
+-   You might have noticed that the previous code snippet contained pointer on arrays and not arrays. This is because fixed-size arrays are not SSAable for now. I do not know much about why it is the case, but @randall77 taught me this when I was working on the POC.
 -   Because we work with pointers on arrays, the performance is not great (allocations and load of non contiguous memory) and it requires us to do the LD/ST dance for each function in the simd package.
 
 ## Scope
@@ -92,13 +94,14 @@ This proposal focuses on adding the following set of intrinsics:
 - Masking
 - Arithmetic (wrapping and saturating)
 - Bit (and, or, xor, shl, shr)
-- Reduce (any, all, eq, neq)
+- Reduce (any, all, eq, neq, max, min)
+- Table Lookup
 
 more can be added later but we are trying to be realistic. We can discuss what is to be included.
 
 ## Why is it Important?
 
-We are missing on a lot of optimizations. Here is a non exhaustive list of concrete things that could improve performance in daily life scenarios:
+Without SIMD, we are missing on a lot of optimizations. Here is a non exhaustive list of concrete things that could improve performance in daily life scenarios:
 
 -   [simdjson](https://github.com/simdjson/simdjson)
 -   [Decoding Billions of Integers Per Second Through Vectorization](https://people.csail.mit.edu/jshun/6886-s19/lectures/lecture19-1.pdf)
