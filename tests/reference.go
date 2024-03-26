@@ -145,3 +145,21 @@ func referenceXorU8x16(a, b *[16]uint8) *[16]uint8 {
 	)
 	return result
 }
+
+func referenceMax8x16(a *[16]int8) int8 {
+	var result int8
+	internal.VmaxvqS8(
+		(*internal.Int8)(&result),
+		(*internal.Int8x16)(unsafe.Pointer(a)),
+	)
+	return result
+}
+
+func referenceMaxU8x16(a *[16]uint8) uint8 {
+	var result uint8
+	internal.VmaxvqU8(
+		(*internal.Uint8)(&result),
+		(*internal.Uint8x16)(unsafe.Pointer(a)),
+	)
+	return result
+}

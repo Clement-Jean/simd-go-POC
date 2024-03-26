@@ -111,3 +111,7 @@ func Xor8x16(a, b *[16]int8) *[16]int8 {
 	xor8x16(out, a, b)
 	return out
 }
+
+func MaxU8x16(a *[16]uint8) uint8
+func Max8x16(a *[16]int8) int8
+
