@@ -146,7 +146,7 @@ func referenceXorU8x16(a, b *[16]uint8) *[16]uint8 {
 	return result
 }
 
-func referenceMax8x16(a *[16]int8) int8 {
+func referenceReduceMax8x16(a *[16]int8) int8 {
 	var result int8
 	internal.VmaxvqS8(
 		(*internal.Int8)(&result),
@@ -155,7 +155,7 @@ func referenceMax8x16(a *[16]int8) int8 {
 	return result
 }
 
-func referenceMaxU8x16(a *[16]uint8) uint8 {
+func referenceReduceMaxU8x16(a *[16]uint8) uint8 {
 	var result uint8
 	internal.VmaxvqU8(
 		(*internal.Uint8)(&result),
@@ -164,7 +164,7 @@ func referenceMaxU8x16(a *[16]uint8) uint8 {
 	return result
 }
 
-func referenceMin8x16(a *[16]int8) int8 {
+func referenceReduceMin8x16(a *[16]int8) int8 {
 	var result int8
 	internal.VminvqS8(
 		(*internal.Int8)(&result),
@@ -173,7 +173,7 @@ func referenceMin8x16(a *[16]int8) int8 {
 	return result
 }
 
-func referenceMinU8x16(a *[16]uint8) uint8 {
+func referenceReduceMinU8x16(a *[16]uint8) uint8 {
 	var result uint8
 	internal.VminvqU8(
 		(*internal.Uint8)(&result),

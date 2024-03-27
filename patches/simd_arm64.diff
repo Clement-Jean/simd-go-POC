@@ -1,5 +1,5 @@
 diff --git a/src/cmd/compile/internal/arm64/ssa.go b/src/cmd/compile/internal/arm64/ssa.go
-index 27b4e881c0..8e93976979 100644
+index 27b4e881c0..a13a070ed5 100644
 --- a/src/cmd/compile/internal/arm64/ssa.go
 +++ b/src/cmd/compile/internal/arm64/ssa.go
 @@ -577,6 +577,408 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
@@ -336,7 +336,7 @@ index 27b4e881c0..8e93976979 100644
 +		p3.To.Type = obj.TYPE_MEM
 +		p3.To.Reg = r0
 +
-+	case ssa.OpARM64LoweredSimdMax8x16:
++	case ssa.OpARM64LoweredSimdReduceMax8x16:
 +		// VLD1 (R0), [V0.D2]
 +		// VMAX V0.B16, V1.B[0]
 +		// VMOV V1.B[0], R1
@@ -372,7 +372,7 @@ index 27b4e881c0..8e93976979 100644
 +		p3.To.Type = obj.TYPE_REG
 +		p3.To.Reg = out
 +
-+	case ssa.OpARM64LoweredSimdMin8x16:
++	case ssa.OpARM64LoweredSimdReduceMin8x16:
 +		// VLD1 (R0), [V0.D2]
 +		// VMIN V0.B16, V1.B[0]
 +		// VMOV V1.B[0], R1
@@ -412,7 +412,7 @@ index 27b4e881c0..8e93976979 100644
  		ssa.OpARM64LoweredAtomicExchange32:
  		// LDAXR	(Rarg0), Rout
 diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64.rules b/src/cmd/compile/internal/ssa/_gen/ARM64.rules
-index c5ee0285d9..ccc5c42e1e 100644
+index c5ee0285d9..4f774eed2a 100644
 --- a/src/cmd/compile/internal/ssa/_gen/ARM64.rules
 +++ b/src/cmd/compile/internal/ssa/_gen/ARM64.rules
 @@ -559,6 +559,26 @@
@@ -434,16 +434,16 @@ index c5ee0285d9..ccc5c42e1e 100644
 +(SimdOr8x16 ...) => (LoweredSimdOr8x16 ...)
 +(SimdXorU8x16 ...) => (LoweredSimdXor8x16 ...)
 +(SimdXor8x16 ...) => (LoweredSimdXor8x16 ...)
-+(SimdMaxU8x16 ...) => (LoweredSimdMax8x16 ...)
-+(SimdMax8x16 ...) => (LoweredSimdMax8x16 ...)
-+(SimdMinU8x16 ...) => (LoweredSimdMin8x16 ...)
-+(SimdMin8x16 ...) => (LoweredSimdMin8x16 ...)
++(SimdReduceMaxU8x16 ...) => (LoweredSimdReduceMax8x16 ...)
++(SimdReduceMax8x16 ...) => (LoweredSimdReduceMax8x16 ...)
++(SimdReduceMinU8x16 ...) => (LoweredSimdReduceMin8x16 ...)
++(SimdReduceMin8x16 ...) => (LoweredSimdReduceMin8x16 ...)
 +
  // atomic intrinsics
  // Note: these ops do not accept offset.
  (AtomicLoad8   ...) => (LDARB ...)
 diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
-index 5a98aa0c54..e609164669 100644
+index 5a98aa0c54..0e35be4034 100644
 --- a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
 +++ b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
 @@ -644,6 +644,48 @@ func init() {
@@ -487,16 +487,16 @@ index 5a98aa0c54..e609164669 100644
 +		{name: "LoweredSimdXor8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
 +
 +		// SIMD max i8x16.
-+		{name: "LoweredSimdMax8x16", argLength: 2, reg: gpstore2, typ: "(UInt8,Mem)", faultOnNilArg0: true},
++		{name: "LoweredSimdReduceMax8x16", argLength: 2, reg: gpstore2, typ: "(UInt8,Mem)", faultOnNilArg0: true},
 +
 +		// SIMD min i8x16.
-+		{name: "LoweredSimdMin8x16", argLength: 2, reg: gpstore2, typ: "(UInt8,Mem)", faultOnNilArg0: true},
++		{name: "LoweredSimdReduceMin8x16", argLength: 2, reg: gpstore2, typ: "(UInt8,Mem)", faultOnNilArg0: true},
 +
  		// atomic exchange.
  		// store arg1 to arg0. arg2=mem. returns <old content of *arg0, memory>. auxint must be zero.
  		// LDAXR	(Rarg0), Rout
 diff --git a/src/cmd/compile/internal/ssa/_gen/genericOps.go b/src/cmd/compile/internal/ssa/_gen/genericOps.go
-index 69eb48ce44..41950457d5 100644
+index 69eb48ce44..62757a54fb 100644
 --- a/src/cmd/compile/internal/ssa/_gen/genericOps.go
 +++ b/src/cmd/compile/internal/ssa/_gen/genericOps.go
 @@ -586,6 +586,24 @@ var genericOps = []opData{
@@ -518,14 +518,14 @@ index 69eb48ce44..41950457d5 100644
 +	{name: "SimdOr8x16", argLength: 4, typ: "Mem", hasSideEffects: true},              // *arg0 = arg1 | arg2.  arg3=memory.  Returns memory.
 +	{name: "SimdXorU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 ^ arg2.  arg3=memory.  Returns memory.
 +	{name: "SimdXor8x16", argLength: 4, typ: "Mem", hasSideEffects: true},             // *arg0 = arg1 ^ arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdMax8x16", argLength: 2, typ: "(UInt8,Mem)"},
-+	{name: "SimdMin8x16", argLength: 2, typ: "(UInt8,Mem)"},
++	{name: "SimdReduceMax8x16", argLength: 2, typ: "(UInt8,Mem)"},
++	{name: "SimdReduceMin8x16", argLength: 2, typ: "(UInt8,Mem)"},
 +
  	// Atomic operations used for semantically inlining sync/atomic and
  	// runtime/internal/atomic. Atomic loads return a new memory so that
  	// the loads are properly ordered with respect to other loads and
 diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
-index c552832520..49f82bccc1 100644
+index c552832520..30f999eefc 100644
 --- a/src/cmd/compile/internal/ssa/opGen.go
 +++ b/src/cmd/compile/internal/ssa/opGen.go
 @@ -1704,6 +1704,17 @@ const (
@@ -541,8 +541,8 @@ index c552832520..49f82bccc1 100644
 +  OpARM64LoweredSimdAnd8x16
 +  OpARM64LoweredSimdOr8x16
 +  OpARM64LoweredSimdXor8x16
-+  OpARM64LoweredSimdMax8x16
-+  OpARM64LoweredSimdMin8x16
++  OpARM64LoweredSimdReduceMax8x16
++  OpARM64LoweredSimdReduceMin8x16
  	OpARM64LoweredAtomicExchange64
  	OpARM64LoweredAtomicExchange32
  	OpARM64LoweredAtomicExchange64Variant
@@ -564,10 +564,10 @@ index c552832520..49f82bccc1 100644
 +	OpSimdOr8x16
 +  OpSimdXorU8x16
 +	OpSimdXor8x16
-+  OpSimdMaxU8x16
-+	OpSimdMax8x16
-+  OpSimdMinU8x16
-+	OpSimdMin8x16
++  OpSimdReduceMaxU8x16
++	OpSimdReduceMax8x16
++  OpSimdReduceMinU8x16
++	OpSimdReduceMin8x16
  	OpAtomicLoad8
  	OpAtomicLoad32
  	OpAtomicLoad64
@@ -693,7 +693,7 @@ index c552832520..49f82bccc1 100644
 +		},
 +	},
 +  {
-+		name:           "LoweredSimdMax8x16",
++		name:           "LoweredSimdReduceMax8x16",
 +		argLen:         2,
 +		faultOnNilArg0: true,
 +		reg: regInfo{
@@ -706,7 +706,7 @@ index c552832520..49f82bccc1 100644
 +		},
 +	},
 +  {
-+		name:           "LoweredSimdMin8x16",
++		name:           "LoweredSimdReduceMin8x16",
 +		argLen:         2,
 +		faultOnNilArg0: true,
 +		reg: regInfo{
@@ -810,22 +810,22 @@ index c552832520..49f82bccc1 100644
 +		generic:        true,
 +	},
 +  {
-+		name:           "SimdMaxU8x16",
++		name:           "SimdReduceMaxU8x16",
 +		argLen:         2,
 +		generic:        true,
 +	},
 +  {
-+		name:           "SimdMax8x16",
++		name:           "SimdReduceMax8x16",
 +		argLen:         2,
 +		generic:        true,
 +	},
 +    {
-+		name:           "SimdMinU8x16",
++		name:           "SimdReduceMinU8x16",
 +		argLen:         2,
 +		generic:        true,
 +	},
 +  {
-+		name:           "SimdMin8x16",
++		name:           "SimdReduceMin8x16",
 +		argLen:         2,
 +		generic:        true,
 +	},
@@ -833,7 +833,7 @@ index c552832520..49f82bccc1 100644
  		name:    "AtomicLoad8",
  		argLen:  2,
 diff --git a/src/cmd/compile/internal/ssa/rewriteARM64.go b/src/cmd/compile/internal/ssa/rewriteARM64.go
-index f0a4425502..719065ff44 100644
+index f0a4425502..0e6732f4f7 100644
 --- a/src/cmd/compile/internal/ssa/rewriteARM64.go
 +++ b/src/cmd/compile/internal/ssa/rewriteARM64.go
 @@ -1049,6 +1049,60 @@ func rewriteValueARM64(v *Value) bool {
@@ -882,23 +882,23 @@ index f0a4425502..719065ff44 100644
 +	case OpSimdXorU8x16:
 +		v.Op = OpARM64LoweredSimdXor8x16
 +		return true
-+  case OpSimdMax8x16:
-+		v.Op = OpARM64LoweredSimdMax8x16
++  case OpSimdReduceMax8x16:
++		v.Op = OpARM64LoweredSimdReduceMax8x16
 +		return true
-+	case OpSimdMaxU8x16:
-+		v.Op = OpARM64LoweredSimdMax8x16
++	case OpSimdReduceMaxU8x16:
++		v.Op = OpARM64LoweredSimdReduceMax8x16
 +		return true
-+  case OpSimdMin8x16:
-+		v.Op = OpARM64LoweredSimdMin8x16
++  case OpSimdReduceMin8x16:
++		v.Op = OpARM64LoweredSimdReduceMin8x16
 +		return true
-+	case OpSimdMinU8x16:
-+		v.Op = OpARM64LoweredSimdMin8x16
++	case OpSimdReduceMinU8x16:
++		v.Op = OpARM64LoweredSimdReduceMin8x16
 +		return true
  	case OpSlicemask:
  		return rewriteValueARM64_OpSlicemask(v)
  	case OpSqrt:
 diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
-index c794d6ffd9..9805a77431 100644
+index c794d6ffd9..e4b9ececcc 100644
 --- a/src/cmd/compile/internal/ssagen/ssa.go
 +++ b/src/cmd/compile/internal/ssagen/ssa.go
 @@ -4287,6 +4287,76 @@ func InitTables() {
@@ -960,16 +960,16 @@ index c794d6ffd9..9805a77431 100644
 +			return nil
 +		},
 +		sys.ARM64)
-+	addF("runtime/internal/simd", "Max8x16",
++	addF("runtime/internal/simd", "ReduceMax8x16",
 +		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
-+			v := s.newValue2(ssa.OpSimdMax8x16, types.NewTuple(types.Types[types.TUINT32], types.TypeMem), args[0], s.mem())
++			v := s.newValue2(ssa.OpSimdReduceMax8x16, types.NewTuple(types.Types[types.TUINT32], types.TypeMem), args[0], s.mem())
 +			s.vars[memVar] = s.newValue1(ssa.OpSelect1, types.TypeMem, v)
 +			return s.newValue1(ssa.OpSelect0, types.Types[types.TUINT32], v)
 +		},
 +		sys.ARM64)
-+	addF("runtime/internal/simd", "Min8x16",
++	addF("runtime/internal/simd", "ReduceMin8x16",
 +		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
-+			v := s.newValue2(ssa.OpSimdMin8x16, types.NewTuple(types.Types[types.TUINT32], types.TypeMem), args[0], s.mem())
++			v := s.newValue2(ssa.OpSimdReduceMin8x16, types.NewTuple(types.Types[types.TUINT32], types.TypeMem), args[0], s.mem())
 +			s.vars[memVar] = s.newValue1(ssa.OpSelect1, types.TypeMem, v)
 +			return s.newValue1(ssa.OpSelect0, types.Types[types.TUINT32], v)
 +		},
@@ -1005,10 +1005,10 @@ index c794d6ffd9..9805a77431 100644
 +	alias("simd", "or8x16", "runtime/internal/simd", "Or8x16", sys.ArchARM64)
 +	alias("simd", "xorU8x16", "runtime/internal/simd", "Xor8x16", sys.ArchARM64)
 +	alias("simd", "xor8x16", "runtime/internal/simd", "Xor8x16", sys.ArchARM64)
-+	alias("simd", "MaxU8x16", "runtime/internal/simd", "Max8x16", sys.ArchARM64)
-+	alias("simd", "Max8x16", "runtime/internal/simd", "Max8x16", sys.ArchARM64)
-+	alias("simd", "MinU8x16", "runtime/internal/simd", "Min8x16", sys.ArchARM64)
-+	alias("simd", "Min8x16", "runtime/internal/simd", "Min8x16", sys.ArchARM64)
++	alias("simd", "ReduceMaxU8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
++	alias("simd", "ReduceMax8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
++	alias("simd", "ReduceMinU8x16", "runtime/internal/simd", "ReduceMin8x16", sys.ArchARM64)
++	alias("simd", "ReduceMin8x16", "runtime/internal/simd", "ReduceMin8x16", sys.ArchARM64)
 +
  	/******** sync/atomic ********/
  

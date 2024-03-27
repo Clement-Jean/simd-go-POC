@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestMax8x16(t *testing.T) {
+func TestReduceMax8x16(t *testing.T) {
 	tests := []struct {
 		a [16]int8
 	}{
@@ -18,8 +18,8 @@ func TestMax8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := simd.Max8x16(&test.a)
-		expected := referenceMax8x16(&test.a)
+		got := simd.ReduceMax8x16(&test.a)
+		expected := referenceReduceMax8x16(&test.a)
 
 		if expected != got {
 			t.Fatalf("expected %d, got %d\n", expected, got)
@@ -27,7 +27,7 @@ func TestMax8x16(t *testing.T) {
 	}
 }
 
-func TestMin8x16(t *testing.T) {
+func TestReduceMin8x16(t *testing.T) {
 	tests := []struct {
 		a [16]int8
 	}{
@@ -40,8 +40,8 @@ func TestMin8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := simd.Min8x16(&test.a)
-		expected := referenceMin8x16(&test.a)
+		got := simd.ReduceMin8x16(&test.a)
+		expected := referenceReduceMin8x16(&test.a)
 
 		if expected != got {
 			t.Fatalf("expected %d, got %d\n", expected, got)

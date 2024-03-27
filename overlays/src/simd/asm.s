@@ -42,14 +42,14 @@ TEXT ·xorU8x16(SB),NOSPLIT,$0
 TEXT ·xor8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·Xor8x16(SB)
 
-TEXT ·maxU8x16(SB),NOSPLIT,$0
-	JMP	runtime∕internal∕simd·Max8x16(SB)
+TEXT ·ReduceMaxU8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·ReduceMax8x16(SB)
 
-TEXT ·max8x16(SB),NOSPLIT,$0
-	JMP	runtime∕internal∕simd·Max8x16(SB)
+TEXT ·ReduceMax8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·ReduceMax8x16(SB)
 
-TEXT ·minU8x16(SB),NOSPLIT,$0
-	JMP	runtime∕internal∕simd·Min8x16(SB)
+TEXT ·ReduceMinU8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·ReduceMin8x16(SB)
 
-TEXT ·min8x16(SB),NOSPLIT,$0
-	JMP	runtime∕internal∕simd·Min8x16(SB)
+TEXT ·ReduceMin8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·ReduceMin8x16(SB)
