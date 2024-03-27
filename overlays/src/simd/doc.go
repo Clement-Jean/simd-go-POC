@@ -112,6 +112,38 @@ func Xor8x16(a, b *[16]int8) *[16]int8 {
 	return out
 }
 
+func maxU8x16(out, a, b *[16]uint8)
+
+func max8x16(out, a, b *[16]int8)
+
+func MaxU8x16(a, b *[16]uint8) *[16]uint8 {
+	out := new([16]uint8)
+	maxU8x16(out, a, b)
+	return out
+}
+
+func Max8x16(a, b *[16]int8) *[16]int8 {
+	out := new([16]int8)
+	max8x16(out, a, b)
+	return out
+}
+
+func minU8x16(out, a, b *[16]uint8)
+
+func min8x16(out, a, b *[16]int8)
+
+func MinU8x16(a, b *[16]uint8) *[16]uint8 {
+	out := new([16]uint8)
+	minU8x16(out, a, b)
+	return out
+}
+
+func Min8x16(a, b *[16]int8) *[16]int8 {
+	out := new([16]int8)
+	min8x16(out, a, b)
+	return out
+}
+
 func ReduceMaxU8x16(a *[16]uint8) uint8
 func ReduceMax8x16(a *[16]int8) int8
 
