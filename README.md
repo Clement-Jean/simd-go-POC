@@ -13,6 +13,8 @@ This repository is an attempt at adding SIMD to Go through compiler intrinsics.
 - `And8x16` & `AndU8x16`
 - `Or8x16` & `OrU8x16`
 - `Xor8x16` & `XorU8x16`
+- `Max8x16` & `MaxU8x16`
+- `Min8x16` & `MinU8x16`
 - `ReduceMax8x16` & `ReduceMaxU8x16`
 - `ReduceMin8x16` & `ReduceMinU8x16`
 
