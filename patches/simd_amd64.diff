@@ -98,7 +98,7 @@ index 5332512f2a..baa5b9a444 100644
  		return rewriteValueAMD64_OpAMD64MOVLatomicload(v)
  	case OpAMD64MOVLf2i:
 diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
-index 6140aa701d..9aba783d19 100644
+index 6140aa701d..d3f0d3eff3 100644
 --- a/src/cmd/compile/internal/ssagen/ssa.go
 +++ b/src/cmd/compile/internal/ssagen/ssa.go
 @@ -4293,7 +4293,7 @@ func InitTables() {
@@ -110,3 +110,14 @@ index 6140aa701d..9aba783d19 100644
  	addF("runtime/internal/simd", "SaturatingAdd8x16",
  		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
  			s.vars[memVar] = s.newValue4(ssa.OpSimdSaturatingAdd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
+@@ -5097,8 +5097,8 @@ func InitTables() {
+ 	alias("runtime/internal/sys", "OnesCount64", "math/bits", "OnesCount64", all...)
+ 
+ 	/******** simd ********/
+-	alias("simd", "addU8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64)
+-	alias("simd", "add8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64)
++	alias("simd", "addU8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "add8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64, sys.ArchAMD64)
+ 	alias("simd", "saturatingAddU8x16", "runtime/internal/simd", "SaturatingAddU8x16", sys.ArchARM64)
+ 	alias("simd", "saturatingAdd8x16", "runtime/internal/simd", "SaturatingAdd8x16", sys.ArchARM64)
+ 	alias("simd", "subU8x16", "runtime/internal/simd", "Sub8x16", sys.ArchARM64)
