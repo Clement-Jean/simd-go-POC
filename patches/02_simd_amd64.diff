@@ -1,0 +1,123 @@
+diff --git a/src/cmd/compile/internal/amd64/ssa.go b/src/cmd/compile/internal/amd64/ssa.go
+index ab762c24f6..622834f8f6 100644
+--- a/src/cmd/compile/internal/amd64/ssa.go
++++ b/src/cmd/compile/internal/amd64/ssa.go
+@@ -1250,6 +1250,47 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+ 		if base.Debug.Nil != 0 && v.Pos.Line() > 1 { // v.Pos.Line()==1 in generated wrappers
+ 			base.WarnfAt(v.Pos, "generated nil check")
+ 		}
++
++	case ssa.OpARM64LoweredSimdAdd8x16:
++		// VMOVUPS (arg1), X0
++		// VMOVUPS (arg2), X1
++		// VPADDQ X1, X0, X0
++		// MOVUPD X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		vmovups := x86.AVMOVUPS
++		p := s.Prog(vmovups)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		p1 := s.Prog(vmovups)
++		p1.From.Type = obj.TYPE_MEM
++		p1.From.Reg = r2
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = x86.REG_X0
++
++		vpaddq := x86.AVPADDQ
++		p2 := s.Prog(vpaddq)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = x86.REG_X0
++		p2.RestArgs = []obj.AddrPos{
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++		}
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = x86.REG_X0
++
++		movupd := x86.AMOVUPD
++		p3 := s.Prog(movupd)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = x86.REG_X0
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
+ 	case ssa.OpAMD64MOVBatomicload, ssa.OpAMD64MOVLatomicload, ssa.OpAMD64MOVQatomicload:
+ 		p := s.Prog(v.Op.Asm())
+ 		p.From.Type = obj.TYPE_MEM
+diff --git a/src/cmd/compile/internal/ssa/_gen/AMD64.rules b/src/cmd/compile/internal/ssa/_gen/AMD64.rules
+index aac6873d28..fe02efa506 100644
+--- a/src/cmd/compile/internal/ssa/_gen/AMD64.rules
++++ b/src/cmd/compile/internal/ssa/_gen/AMD64.rules
+@@ -549,6 +549,10 @@
+ 
+ (JumpTable idx) => (JUMPTABLE {makeJumpTableSym(b)} idx (LEAQ <typ.Uintptr> {makeJumpTableSym(b)} (SB)))
+ 
++// simd intrinsics
++(SimdAddU8x16 ...) => (LoweredSimdAdd8x16 ...)
++(SimdAdd8x16 ...) => (LoweredSimdAdd8x16 ...)
++
+ // Atomic loads.  Other than preserving their ordering with respect to other loads, nothing special here.
+ (AtomicLoad8 ptr mem) => (MOVBatomicload ptr mem)
+ (AtomicLoad32 ptr mem) => (MOVLatomicload ptr mem)
+diff --git a/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go b/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
+index 606171947b..20e059839c 100644
+--- a/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
++++ b/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
+@@ -994,6 +994,10 @@ func init() {
+ 		{name: "FlagGT_UGT"}, // signed > and unsigned >
+ 		{name: "FlagGT_ULT"}, // signed > and unsigned <
+ 
++		// SIMD wrapping add u8x16.
++		// *arg0 = arg1 + arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdAdd8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
+ 		// Atomic loads.  These are just normal loads but return <value,memory> tuples
+ 		// so they can be properly ordered with other loads.
+ 		// load from arg0+auxint+aux.  arg1=mem.
+diff --git a/src/cmd/compile/internal/ssa/rewriteAMD64.go b/src/cmd/compile/internal/ssa/rewriteAMD64.go
+index 5332512f2a..baa5b9a444 100644
+--- a/src/cmd/compile/internal/ssa/rewriteAMD64.go
++++ b/src/cmd/compile/internal/ssa/rewriteAMD64.go
+@@ -241,6 +241,12 @@ func rewriteValueAMD64(v *Value) bool {
+ 		return rewriteValueAMD64_OpAMD64MOVLQSXload(v)
+ 	case OpAMD64MOVLQZX:
+ 		return rewriteValueAMD64_OpAMD64MOVLQZX(v)
++	case OpSimdAdd8x16:
++		v.Op = OpARM64LoweredSimdAdd8x16
++		return true
++	case OpSimdAddU8x16:
++		v.Op = OpARM64LoweredSimdAdd8x16
++		return true
+ 	case OpAMD64MOVLatomicload:
+ 		return rewriteValueAMD64_OpAMD64MOVLatomicload(v)
+ 	case OpAMD64MOVLf2i:
+diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
+index 6140aa701d..d3f0d3eff3 100644
+--- a/src/cmd/compile/internal/ssagen/ssa.go
++++ b/src/cmd/compile/internal/ssagen/ssa.go
+@@ -4293,7 +4293,7 @@ func InitTables() {
+ 			s.vars[memVar] = s.newValue4(ssa.OpSimdAdd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
+ 			return nil
+ 		},
+-		sys.ARM64)
++		sys.AMD64, sys.ARM64)
+ 	addF("runtime/internal/simd", "SaturatingAdd8x16",
+ 		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+ 			s.vars[memVar] = s.newValue4(ssa.OpSimdSaturatingAdd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
+@@ -5097,8 +5097,8 @@ func InitTables() {
+ 	alias("runtime/internal/sys", "OnesCount64", "math/bits", "OnesCount64", all...)
+ 
+ 	/******** simd ********/
+-	alias("simd", "addU8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64)
+-	alias("simd", "add8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64)
++	alias("simd", "addU8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "add8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64, sys.ArchAMD64)
+ 	alias("simd", "saturatingAddU8x16", "runtime/internal/simd", "SaturatingAddU8x16", sys.ArchARM64)
+ 	alias("simd", "saturatingAdd8x16", "runtime/internal/simd", "SaturatingAdd8x16", sys.ArchARM64)
+ 	alias("simd", "subU8x16", "runtime/internal/simd", "Sub8x16", sys.ArchARM64)
