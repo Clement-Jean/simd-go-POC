@@ -2,3 +2,4 @@
 	path = go
 	url = https://go.googlesource.com/go
 	branch = release-branch.go1.22
+	shallow = true
