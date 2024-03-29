@@ -1,6 +1,7 @@
 package internal
 
 /*
+#include <stdint.h>
 #include <immintrin.h>
 */
 import "C"
