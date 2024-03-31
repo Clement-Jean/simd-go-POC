@@ -15,6 +15,9 @@ func TestReduceMax8x16(t *testing.T) {
 		{
 			a: [16]int8{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
 		},
+		{
+			a: *(*[16]int8)(genInt8Arr(16)),
+		},
 	}
 
 	for _, test := range tests {
@@ -22,7 +25,7 @@ func TestReduceMax8x16(t *testing.T) {
 		expected := referenceReduceMax8x16(&test.a)
 
 		if expected != got {
-			t.Fatalf("expected %d, got %d\n", expected, got)
+			t.Fatalf("%v: expected %d, got %d\n", test.a, expected, got)
 		}
 	}
 }
@@ -37,6 +40,9 @@ func TestReduceMin8x16(t *testing.T) {
 		{
 			a: [16]int8{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
 		},
+		{
+			a: *(*[16]int8)(genInt8Arr(16)),
+		},
 	}
 
 	for _, test := range tests {
@@ -44,7 +50,7 @@ func TestReduceMin8x16(t *testing.T) {
 		expected := referenceReduceMin8x16(&test.a)
 
 		if expected != got {
-			t.Fatalf("expected %d, got %d\n", expected, got)
+			t.Fatalf("%v: expected %d, got %d\n", test.a, expected, got)
 		}
 	}
 }

@@ -1,12 +1,11 @@
 package tests
 
 import (
-	"testing"
-
 	"simd"
+	"testing"
 )
 
-func TestAnd8x16(t *testing.T) {
+func TestMax8x16(t *testing.T) {
 	tests := []struct {
 		a [16]int8
 		b [16]int8
@@ -26,18 +25,18 @@ func TestAnd8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceAnd8x16(&test.a, &test.b)
-		got := simd.And8x16(&test.a, &test.b)
+		expected := referenceMax8x16(&test.a, &test.b)
+		got := simd.Max8x16(&test.a, &test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
+				t.Fatalf("expected %v, got %v\n", expected, got)
 			}
 		}
 	}
 }
 
-func TestAndU8x16(t *testing.T) {
+func TestMaxU8x16(t *testing.T) {
 	tests := []struct {
 		a [16]uint8
 		b [16]uint8
@@ -57,18 +56,18 @@ func TestAndU8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceAndU8x16(&test.a, &test.b)
-		got := simd.AndU8x16(&test.a, &test.b)
+		expected := referenceMaxU8x16(&test.a, &test.b)
+		got := simd.MaxU8x16(&test.a, &test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
+				t.Fatalf("expected %v, got %v\n", expected, got)
 			}
 		}
 	}
 }
 
-func TestOr8x16(t *testing.T) {
+func TestMin8x16(t *testing.T) {
 	tests := []struct {
 		a [16]int8
 		b [16]int8
@@ -88,8 +87,8 @@ func TestOr8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceOr8x16(&test.a, &test.b)
-		got := simd.Or8x16(&test.a, &test.b)
+		expected := referenceMin8x16(&test.a, &test.b)
+		got := simd.Min8x16(&test.a, &test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
@@ -99,7 +98,7 @@ func TestOr8x16(t *testing.T) {
 	}
 }
 
-func TestOrU8x16(t *testing.T) {
+func TestMinU8x16(t *testing.T) {
 	tests := []struct {
 		a [16]uint8
 		b [16]uint8
@@ -119,70 +118,8 @@ func TestOrU8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceOrU8x16(&test.a, &test.b)
-		got := simd.OrU8x16(&test.a, &test.b)
-
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
-		}
-	}
-}
-
-func TestXor8x16(t *testing.T) {
-	tests := []struct {
-		a [16]int8
-		b [16]int8
-	}{
-		{
-			a: [16]int8{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
-			b: [16]int8{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
-		},
-		{
-			a: [16]int8{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
-			b: [16]int8{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
-		},
-		{
-			a: *(*[16]int8)(genInt8Arr(16)),
-			b: *(*[16]int8)(genInt8Arr(16)),
-		},
-	}
-
-	for _, test := range tests {
-		expected := referenceXor8x16(&test.a, &test.b)
-		got := simd.Xor8x16(&test.a, &test.b)
-
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
-		}
-	}
-}
-
-func TestXorU8x16(t *testing.T) {
-	tests := []struct {
-		a [16]uint8
-		b [16]uint8
-	}{
-		{
-			a: [16]uint8{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
-			b: [16]uint8{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
-		},
-		{
-			a: [16]uint8{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
-			b: [16]uint8{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
-		},
-		{
-			a: *(*[16]uint8)(genUint8Arr(16)),
-			b: *(*[16]uint8)(genUint8Arr(16)),
-		},
-	}
-
-	for _, test := range tests {
-		expected := referenceXorU8x16(&test.a, &test.b)
-		got := simd.XorU8x16(&test.a, &test.b)
+		expected := referenceMinU8x16(&test.a, &test.b)
+		got := simd.MinU8x16(&test.a, &test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {

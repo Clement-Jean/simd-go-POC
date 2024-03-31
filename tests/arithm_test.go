@@ -24,6 +24,10 @@ func TestAdd8x16(t *testing.T) {
 			a: [16]int8{math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8},
 			b: [16]int8{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 		},
+		{
+			a: *(*[16]int8)(genInt8Arr(16)),
+			b: *(*[16]int8)(genInt8Arr(16)),
+		},
 	}
 
 	for _, test := range tests {
@@ -50,6 +54,10 @@ func TestAddU8x16(t *testing.T) {
 		{
 			a: [16]uint8{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 			b: [16]uint8{math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8},
+		},
+		{
+			a: *(*[16]uint8)(genUint8Arr(16)),
+			b: *(*[16]uint8)(genUint8Arr(16)),
 		},
 	}
 
@@ -82,6 +90,10 @@ func TestSaturatingAdd8x16(t *testing.T) {
 			a: [16]int8{math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8},
 			b: [16]int8{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 		},
+		{
+			a: *(*[16]int8)(genInt8Arr(16)),
+			b: *(*[16]int8)(genInt8Arr(16)),
+		},
 	}
 
 	for _, test := range tests {
@@ -108,6 +120,10 @@ func TestSaturatingAddU8x16(t *testing.T) {
 		{
 			a: [16]uint8{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 			b: [16]uint8{math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8},
+		},
+		{
+			a: *(*[16]uint8)(genUint8Arr(16)),
+			b: *(*[16]uint8)(genUint8Arr(16)),
 		},
 	}
 
@@ -140,6 +156,10 @@ func TestSub8x16(t *testing.T) {
 			a: [16]int8{math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8, math.MinInt8},
 			b: [16]int8{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 		},
+		{
+			a: *(*[16]int8)(genInt8Arr(16)),
+			b: *(*[16]int8)(genInt8Arr(16)),
+		},
 	}
 
 	for _, test := range tests {
@@ -166,6 +186,10 @@ func TestSubU8x16(t *testing.T) {
 		{
 			a: [16]uint8{},
 			b: [16]uint8{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+		},
+		{
+			a: *(*[16]uint8)(genUint8Arr(16)),
+			b: *(*[16]uint8)(genUint8Arr(16)),
 		},
 	}
 
@@ -198,6 +222,10 @@ func TestSaturatingSub8x16(t *testing.T) {
 			a: [16]int8{math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8, math.MaxInt8},
 			b: [16]int8{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 		},
+		{
+			a: *(*[16]int8)(genInt8Arr(16)),
+			b: *(*[16]int8)(genInt8Arr(16)),
+		},
 	}
 
 	for _, test := range tests {
@@ -224,6 +252,10 @@ func TestSaturatingSubU8x16(t *testing.T) {
 		{
 			a: [16]uint8{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 			b: [16]uint8{math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8, math.MaxUint8},
+		},
+		{
+			a: *(*[16]uint8)(genUint8Arr(16)),
+			b: *(*[16]uint8)(genUint8Arr(16)),
 		},
 	}
 
