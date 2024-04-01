@@ -65,7 +65,7 @@ index 2a4c59ebfc..2a71b740ac 100644
  (AtomicLoad8 ptr mem) => (MOVBatomicload ptr mem)
  (AtomicLoad32 ptr mem) => (MOVLatomicload ptr mem)
 diff --git a/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go b/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
-index 606171947b..d07b704dd4 100644
+index 606171947b..1dff482e96 100644
 --- a/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
 +++ b/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
 @@ -981,6 +981,10 @@ func init() {
@@ -74,13 +74,13 @@ index 606171947b..d07b704dd4 100644
  
 +		// SIMD wrapping add u8x16.
 +		// *arg0 = arg1 + arg2. arg3=mem. returns memory.
-+		{name: "LoweredSimdAdd8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpsp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++		{name: "LoweredSimdAdd8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
 +
  		// Constant flag values. For any comparison, there are 5 possible
  		// outcomes: the three from the signed total order (<,==,>) and the
  		// three from the unsigned total order. The == cases overlap.
 diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
-index 88326aa8b4..350e9d502e 100644
+index 88326aa8b4..2d53d6f9a1 100644
 --- a/src/cmd/compile/internal/ssa/opGen.go
 +++ b/src/cmd/compile/internal/ssa/opGen.go
 @@ -1052,6 +1052,7 @@ const (
@@ -91,7 +91,7 @@ index 88326aa8b4..350e9d502e 100644
  	OpAMD64FlagEQ
  	OpAMD64FlagLT_ULT
  	OpAMD64FlagLT_UGT
-@@ -13882,6 +13883,17 @@ var opcodeTable = [...]opInfo{
+@@ -13882,6 +13883,19 @@ var opcodeTable = [...]opInfo{
  			},
  		},
  	},
@@ -102,7 +102,9 @@ index 88326aa8b4..350e9d502e 100644
 +		hasSideEffects: true,
 +		reg: regInfo{
 +			inputs: []inputInfo{
-+				{0, 49151}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
 +			},
 +		},
 +	},
