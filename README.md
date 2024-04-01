@@ -2,21 +2,32 @@
 
 This repository is an attempt at adding SIMD to Go through compiler intrinsics.
 
-:warning: It only works on ARM64 for now :warning:
-
 ## Supported Intrinsics
 
-- `Add8x16` & `AddU8x16`
-- `Sub8x16` & `SubU8x16`
-- `SaturatingAdd8x16` & `SaturatingAddU8x16`
-- `SaturatingSub8x16` & `SaturatingSubU8x16`
-- `And8x16` & `AndU8x16`
-- `Or8x16` & `OrU8x16`
-- `Xor8x16` & `XorU8x16`
-- `Max8x16` & `MaxU8x16`
-- `Min8x16` & `MinU8x16`
-- `ReduceMax8x16` & `ReduceMaxU8x16`
-- `ReduceMin8x16` & `ReduceMinU8x16`
+| Intrinsic            | NEON               | SSE2 |
+|----------------------|--------------------|------|
+| `Add8x16`            | :white_check_mark: | :x:  |
+| `AddU8x16`           | :white_check_mark: | :x:  |
+| `Sub8x16`            | :white_check_mark: | :x:  |
+| `SubU8x16`           | :white_check_mark: | :x:  |
+| `SaturatingAdd8x16`  | :white_check_mark: | :x:  |
+| `SaturatingAddU8x16` | :white_check_mark: | :x:  |
+| `SaturatingSub8x16`  | :white_check_mark: | :x:  |
+| `SaturatingSubU8x16` | :white_check_mark: | :x:  |
+| `And8x16`            | :white_check_mark: | :x:  |
+| `AndU8x16`           | :white_check_mark: | :x:  |
+| `Or8x16`             | :white_check_mark: | :x:  |
+| `OrU8x16`            | :white_check_mark: | :x:  |
+| `Xor8x16`            | :white_check_mark: | :x:  |
+| `Xor8x16`            | :white_check_mark: | :x:  |
+| `Max8x16`            | :white_check_mark: | :x:  |
+| `MaxU8x16`           | :white_check_mark: | :x:  |
+| `Min8x16`            | :white_check_mark: | :x:  |
+| `MinU8x16`           | :white_check_mark: | :x:  |
+| `ReduceMax8x16`      | :white_check_mark: | :x:  |
+| `ReduceMaxU8x16`     | :white_check_mark: | :x:  |
+| `ReduceMin8x16`      | :white_check_mark: | :x:  |
+| `ReduceMinU8x16`     | :white_check_mark: | :x:  |
 
 ## Architecture
 
