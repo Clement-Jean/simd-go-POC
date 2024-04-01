@@ -28,31 +28,61 @@ func referenceAddU8x16(a, b *[16]uint8) *[16]uint8 {
 
 func referenceSaturatingAdd8x16(a, b *[16]int8) *[16]int8 {
 	result := new([16]int8)
+	internal.MmAddsEpi8(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceSaturatingAddU8x16(a, b *[16]uint8) *[16]uint8 {
 	result := new([16]uint8)
+	internal.MmAddsEpu8(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceSub8x16(a, b *[16]int8) *[16]int8 {
 	result := new([16]int8)
+	internal.MmSubEpi8(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceSubU8x16(a, b *[16]uint8) *[16]uint8 {
 	result := new([16]uint8)
+	internal.MmSubEpi8(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceSaturatingSub8x16(a, b *[16]int8) *[16]int8 {
 	result := new([16]int8)
+	internal.MmSubsEpi8(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceSaturatingSubU8x16(a, b *[16]uint8) *[16]uint8 {
 	result := new([16]uint8)
+	internal.MmSubsEpu8(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
