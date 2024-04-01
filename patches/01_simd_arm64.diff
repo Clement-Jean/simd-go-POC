@@ -624,7 +624,7 @@ index 27b4e881c0..f095cc43d6 100644
  		ssa.OpARM64LoweredAtomicExchange32:
  		// LDAXR	(Rarg0), Rout
 diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64.rules b/src/cmd/compile/internal/ssa/_gen/ARM64.rules
-index c5ee0285d9..8a51ed68d7 100644
+index 18a6586fb0..3900083788 100644
 --- a/src/cmd/compile/internal/ssa/_gen/ARM64.rules
 +++ b/src/cmd/compile/internal/ssa/_gen/ARM64.rules
 @@ -559,6 +559,30 @@
@@ -659,7 +659,7 @@ index c5ee0285d9..8a51ed68d7 100644
  // Note: these ops do not accept offset.
  (AtomicLoad8   ...) => (LDARB ...)
 diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
-index 5a98aa0c54..996846f8b2 100644
+index 5a98aa0c54..42f0b9fea3 100644
 --- a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
 +++ b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
 @@ -644,6 +644,67 @@ func init() {
@@ -718,20 +718,20 @@ index 5a98aa0c54..996846f8b2 100644
 +		{name: "LoweredSimdMinU8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
 +
 +		// SIMD max i8x16.
-+		{name: "LoweredSimdReduceMax8x16", argLength: 2, reg: gpstore2, typ: "(Int8,Mem)", faultOnNilArg0: true},
++		{name: "LoweredSimdReduceMax8x16", argLength: 2, reg: gpload, typ: "(Int8,Mem)", faultOnNilArg0: true},
 +		// SIMD max u8x16.
-+		{name: "LoweredSimdReduceMaxU8x16", argLength: 2, reg: gpstore2, typ: "(UInt8,Mem)", faultOnNilArg0: true},
++		{name: "LoweredSimdReduceMaxU8x16", argLength: 2, reg: gpload, typ: "(UInt8,Mem)", faultOnNilArg0: true},
 +
 +		// SIMD min i8x16.
-+		{name: "LoweredSimdReduceMin8x16", argLength: 2, reg: gpstore2, typ: "(Int8,Mem)", faultOnNilArg0: true},
++		{name: "LoweredSimdReduceMin8x16", argLength: 2, reg: gpload, typ: "(Int8,Mem)", faultOnNilArg0: true},
 +		// SIMD min u8x16.
-+		{name: "LoweredSimdReduceMinU8x16", argLength: 2, reg: gpstore2, typ: "(UInt8,Mem)", faultOnNilArg0: true},
++		{name: "LoweredSimdReduceMinU8x16", argLength: 2, reg: gpload, typ: "(UInt8,Mem)", faultOnNilArg0: true},
 +
  		// atomic exchange.
  		// store arg1 to arg0. arg2=mem. returns <old content of *arg0, memory>. auxint must be zero.
  		// LDAXR	(Rarg0), Rout
 diff --git a/src/cmd/compile/internal/ssa/_gen/genericOps.go b/src/cmd/compile/internal/ssa/_gen/genericOps.go
-index 69eb48ce44..3df7f34c71 100644
+index 69eb48ce44..1183aad0ed 100644
 --- a/src/cmd/compile/internal/ssa/_gen/genericOps.go
 +++ b/src/cmd/compile/internal/ssa/_gen/genericOps.go
 @@ -586,6 +586,30 @@ var genericOps = []opData{
@@ -739,34 +739,34 @@ index 69eb48ce44..3df7f34c71 100644
  	{name: "MakeResult", argLength: -1},               // arg0 .. are components of a "Result" (like the result from a Call). The last arg should be memory (like the result from a call).
  
 +	// SIMD
-+	{name: "SimdAddU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdAdd8x16", argLength: 4, typ: "Mem", hasSideEffects: true},             // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdStaturatingAddU8x16", argLength: 4, typ: "Mem", hasSideEffects: true}, // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdStaturatingAdd8x16", argLength: 4, typ: "Mem", hasSideEffects: true},  // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdSubU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdSub8x16", argLength: 4, typ: "Mem", hasSideEffects: true},             // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdStaturatingSubU8x16", argLength: 4, typ: "Mem", hasSideEffects: true}, // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdStaturatingSub8x16", argLength: 4, typ: "Mem", hasSideEffects: true},  // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdAndU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 & arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdAnd8x16", argLength: 4, typ: "Mem", hasSideEffects: true},             // *arg0 = arg1 & arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdOrU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},             // *arg0 = arg1 | arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdOr8x16", argLength: 4, typ: "Mem", hasSideEffects: true},              // *arg0 = arg1 | arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdXorU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 ^ arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdXor8x16", argLength: 4, typ: "Mem", hasSideEffects: true},             // *arg0 = arg1 ^ arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdMax8x16", argLength: 4, typ: "Mem", hasSideEffects: true},             // *arg0 = max(arg1, arg2).  arg3=memory.  Returns memory.
-+	{name: "SimdMaxU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = max(arg1, arg2).  arg3=memory.  Returns memory.
-+	{name: "SimdMin8x16", argLength: 4, typ: "Mem", hasSideEffects: true},             // *arg0 = min(arg1, arg2).  arg3=memory.  Returns memory.
-+	{name: "SimdMinU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = min(arg1, arg2).  arg3=memory.  Returns memory.
-+	{name: "SimdReduceMax8x16", argLength: 2, typ: "(Int8,Mem)"},                      // Returns max(arg0)
-+	{name: "SimdReduceMaxU8x16", argLength: 2, typ: "(UInt8,Mem)"},                    // Returns max(arg0)
-+	{name: "SimdReduceMin8x16", argLength: 2, typ: "(Int8,Mem)"},                      // Returns min(arg0)
-+	{name: "SimdReduceMinU8x16", argLength: 2, typ: "(UInt8,Mem)"},                    // Returns min(arg0)
++	{name: "SimdAddU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},           // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
++	{name: "SimdAdd8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
++	{name: "SimdSaturatingAddU8x16", argLength: 4, typ: "Mem", hasSideEffects: true}, // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
++	{name: "SimdSaturatingAdd8x16", argLength: 4, typ: "Mem", hasSideEffects: true},  // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
++	{name: "SimdSubU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},           // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
++	{name: "SimdSub8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
++	{name: "SimdSaturatingSubU8x16", argLength: 4, typ: "Mem", hasSideEffects: true}, // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
++	{name: "SimdSaturatingSub8x16", argLength: 4, typ: "Mem", hasSideEffects: true},  // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
++	{name: "SimdAndU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},           // *arg0 = arg1 & arg2.  arg3=memory.  Returns memory.
++	{name: "SimdAnd8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 & arg2.  arg3=memory.  Returns memory.
++	{name: "SimdOrU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 | arg2.  arg3=memory.  Returns memory.
++	{name: "SimdOr8x16", argLength: 4, typ: "Mem", hasSideEffects: true},             // *arg0 = arg1 | arg2.  arg3=memory.  Returns memory.
++	{name: "SimdXorU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},           // *arg0 = arg1 ^ arg2.  arg3=memory.  Returns memory.
++	{name: "SimdXor8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 ^ arg2.  arg3=memory.  Returns memory.
++	{name: "SimdMax8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = max(arg1, arg2).  arg3=memory.  Returns memory.
++	{name: "SimdMaxU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},           // *arg0 = max(arg1, arg2).  arg3=memory.  Returns memory.
++	{name: "SimdMin8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = min(arg1, arg2).  arg3=memory.  Returns memory.
++	{name: "SimdMinU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},           // *arg0 = min(arg1, arg2).  arg3=memory.  Returns memory.
++	{name: "SimdReduceMax8x16", argLength: 2, typ: "(Int8,Mem)"},                     // Returns max(arg0)
++	{name: "SimdReduceMaxU8x16", argLength: 2, typ: "(UInt8,Mem)"},                   // Returns max(arg0)
++	{name: "SimdReduceMin8x16", argLength: 2, typ: "(Int8,Mem)"},                     // Returns min(arg0)
++	{name: "SimdReduceMinU8x16", argLength: 2, typ: "(UInt8,Mem)"},                   // Returns min(arg0)
 +
  	// Atomic operations used for semantically inlining sync/atomic and
  	// runtime/internal/atomic. Atomic loads return a new memory so that
  	// the loads are properly ordered with respect to other loads and
 diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
-index c552832520..c9def1ac8c 100644
+index c552832520..88326aa8b4 100644
 --- a/src/cmd/compile/internal/ssa/opGen.go
 +++ b/src/cmd/compile/internal/ssa/opGen.go
 @@ -1704,6 +1704,23 @@ const (
@@ -774,11 +774,11 @@ index c552832520..c9def1ac8c 100644
  	OpARM64STLR
  	OpARM64STLRW
 +	OpARM64LoweredSimdAdd8x16
-+	OpARM64LoweredSimdSaturatingAdd8x16
 +	OpARM64LoweredSimdSaturatingAddU8x16
++	OpARM64LoweredSimdSaturatingAdd8x16
 +	OpARM64LoweredSimdSub8x16
-+	OpARM64LoweredSimdSaturatingSub8x16
 +	OpARM64LoweredSimdSaturatingSubU8x16
++	OpARM64LoweredSimdSaturatingSub8x16
 +	OpARM64LoweredSimdAnd8x16
 +	OpARM64LoweredSimdOr8x16
 +	OpARM64LoweredSimdXor8x16
@@ -811,14 +811,14 @@ index c552832520..c9def1ac8c 100644
 +	OpSimdOr8x16
 +	OpSimdXorU8x16
 +	OpSimdXor8x16
-+	OpSimdMaxU8x16
 +	OpSimdMax8x16
-+	OpSimdMinU8x16
++	OpSimdMaxU8x16
 +	OpSimdMin8x16
-+	OpSimdReduceMaxU8x16
++	OpSimdMinU8x16
 +	OpSimdReduceMax8x16
-+	OpSimdReduceMinU8x16
++	OpSimdReduceMaxU8x16
 +	OpSimdReduceMin8x16
++	OpSimdReduceMinU8x16
  	OpAtomicLoad8
  	OpAtomicLoad32
  	OpAtomicLoad64
@@ -840,7 +840,7 @@ index c552832520..c9def1ac8c 100644
 +		},
 +	},
 +	{
-+		name:           "LoweredSimdStaturatingAdd8x16",
++		name:           "LoweredSimdSaturatingAddU8x16",
 +		argLen:         4,
 +		faultOnNilArg0: true,
 +		hasSideEffects: true,
@@ -853,7 +853,7 @@ index c552832520..c9def1ac8c 100644
 +		},
 +	},
 +	{
-+		name:           "LoweredSimdStaturatingAddU8x16",
++		name:           "LoweredSimdSaturatingAdd8x16",
 +		argLen:         4,
 +		faultOnNilArg0: true,
 +		hasSideEffects: true,
@@ -879,7 +879,7 @@ index c552832520..c9def1ac8c 100644
 +		},
 +	},
 +	{
-+		name:           "LoweredSimdStaturatingSub8x16",
++		name:           "LoweredSimdSaturatingSubU8x16",
 +		argLen:         4,
 +		faultOnNilArg0: true,
 +		hasSideEffects: true,
@@ -892,7 +892,7 @@ index c552832520..c9def1ac8c 100644
 +		},
 +	},
 +	{
-+		name:           "LoweredSimdStaturatingSubU8x16",
++		name:           "LoweredSimdSaturatingSub8x16",
 +		argLen:         4,
 +		faultOnNilArg0: true,
 +		hasSideEffects: true,
@@ -1022,7 +1022,7 @@ index c552832520..c9def1ac8c 100644
 +		},
 +	},
 +	{
-+		name:           "LoweredSimdReduceMinU8x16",
++		name:           "LoweredSimdReduceMin8x16",
 +		argLen:         2,
 +		faultOnNilArg0: true,
 +		reg: regInfo{
@@ -1035,7 +1035,7 @@ index c552832520..c9def1ac8c 100644
 +		},
 +	},
 +	{
-+		name:           "LoweredSimdReduceMin8x16",
++		name:           "LoweredSimdReduceMinU8x16",
 +		argLen:         2,
 +		faultOnNilArg0: true,
 +		reg: regInfo{
@@ -1139,19 +1139,13 @@ index c552832520..c9def1ac8c 100644
 +		generic:        true,
 +	},
 +	{
-+		name:           "SimdMaxU8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
 +		name:           "SimdMax8x16",
 +		argLen:         4,
 +		hasSideEffects: true,
 +		generic:        true,
 +	},
 +	{
-+		name:           "SimdMinU8x16",
++		name:           "SimdMaxU8x16",
 +		argLen:         4,
 +		hasSideEffects: true,
 +		generic:        true,
@@ -1163,9 +1157,10 @@ index c552832520..c9def1ac8c 100644
 +		generic:        true,
 +	},
 +	{
-+		name:    "SimdReduceMaxU8x16",
-+		argLen:  2,
-+		generic: true,
++		name:           "SimdMinU8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
 +	},
 +	{
 +		name:    "SimdReduceMax8x16",
@@ -1173,7 +1168,7 @@ index c552832520..c9def1ac8c 100644
 +		generic: true,
 +	},
 +	{
-+		name:    "SimdReduceMinU8x16",
++		name:    "SimdReduceMaxU8x16",
 +		argLen:  2,
 +		generic: true,
 +	},
@@ -1182,11 +1177,16 @@ index c552832520..c9def1ac8c 100644
 +		argLen:  2,
 +		generic: true,
 +	},
++	{
++		name:    "SimdReduceMinU8x16",
++		argLen:  2,
++		generic: true,
++	},
  	{
  		name:    "AtomicLoad8",
  		argLen:  2,
 diff --git a/src/cmd/compile/internal/ssa/rewriteARM64.go b/src/cmd/compile/internal/ssa/rewriteARM64.go
-index f0a4425502..b050ad3228 100644
+index 8f60f023b1..48472c8cec 100644
 --- a/src/cmd/compile/internal/ssa/rewriteARM64.go
 +++ b/src/cmd/compile/internal/ssa/rewriteARM64.go
 @@ -1049,6 +1049,72 @@ func rewriteValueARM64(v *Value) bool {
@@ -1199,41 +1199,11 @@ index f0a4425502..b050ad3228 100644
 +	case OpSimdAddU8x16:
 +		v.Op = OpARM64LoweredSimdAdd8x16
 +		return true
-+	case OpSimdSaturatingAdd8x16:
-+		v.Op = OpARM64LoweredSimdSaturatingAdd8x16
-+		return true
-+	case OpSimdSaturatingAddU8x16:
-+		v.Op = OpARM64LoweredSimdSaturatingAddU8x16
-+		return true
-+	case OpSimdSub8x16:
-+		v.Op = OpARM64LoweredSimdSub8x16
-+		return true
-+	case OpSimdSubU8x16:
-+		v.Op = OpARM64LoweredSimdSub8x16
-+		return true
-+	case OpSimdSaturatingSub8x16:
-+		v.Op = OpARM64LoweredSimdSaturatingSub8x16
-+		return true
-+	case OpSimdSaturatingSubU8x16:
-+		v.Op = OpARM64LoweredSimdSaturatingSubU8x16
-+		return true
 +	case OpSimdAnd8x16:
 +		v.Op = OpARM64LoweredSimdAnd8x16
 +		return true
 +	case OpSimdAndU8x16:
 +		v.Op = OpARM64LoweredSimdAnd8x16
-+		return true
-+	case OpSimdOr8x16:
-+		v.Op = OpARM64LoweredSimdOr8x16
-+		return true
-+	case OpSimdOrU8x16:
-+		v.Op = OpARM64LoweredSimdOr8x16
-+		return true
-+	case OpSimdXor8x16:
-+		v.Op = OpARM64LoweredSimdXor8x16
-+		return true
-+	case OpSimdXorU8x16:
-+		v.Op = OpARM64LoweredSimdXor8x16
 +		return true
 +	case OpSimdMax8x16:
 +		v.Op = OpARM64LoweredSimdMax8x16
@@ -1247,6 +1217,12 @@ index f0a4425502..b050ad3228 100644
 +	case OpSimdMinU8x16:
 +		v.Op = OpARM64LoweredSimdMinU8x16
 +		return true
++	case OpSimdOr8x16:
++		v.Op = OpARM64LoweredSimdOr8x16
++		return true
++	case OpSimdOrU8x16:
++		v.Op = OpARM64LoweredSimdOr8x16
++		return true
 +	case OpSimdReduceMax8x16:
 +		v.Op = OpARM64LoweredSimdReduceMax8x16
 +		return true
@@ -1258,6 +1234,30 @@ index f0a4425502..b050ad3228 100644
 +		return true
 +	case OpSimdReduceMinU8x16:
 +		v.Op = OpARM64LoweredSimdReduceMinU8x16
++		return true
++	case OpSimdSaturatingAdd8x16:
++		v.Op = OpARM64LoweredSimdSaturatingAdd8x16
++		return true
++	case OpSimdSaturatingAddU8x16:
++		v.Op = OpARM64LoweredSimdSaturatingAddU8x16
++		return true
++	case OpSimdSaturatingSub8x16:
++		v.Op = OpARM64LoweredSimdSaturatingSub8x16
++		return true
++	case OpSimdSaturatingSubU8x16:
++		v.Op = OpARM64LoweredSimdSaturatingSubU8x16
++		return true
++	case OpSimdSub8x16:
++		v.Op = OpARM64LoweredSimdSub8x16
++		return true
++	case OpSimdSubU8x16:
++		v.Op = OpARM64LoweredSimdSub8x16
++		return true
++	case OpSimdXor8x16:
++		v.Op = OpARM64LoweredSimdXor8x16
++		return true
++	case OpSimdXorU8x16:
++		v.Op = OpARM64LoweredSimdXor8x16
 +		return true
  	case OpSlicemask:
  		return rewriteValueARM64_OpSlicemask(v)
