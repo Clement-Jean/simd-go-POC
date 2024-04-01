@@ -41,7 +41,7 @@ For the first point, I was thinking about optional build tags like the following
 
 etc.
 
-As mentionned, these build tags are optional. If not specified, we would resolve to the most recent SIMD ISA available on the current OS and ARCH. However, I still think that these build tags are needed for deeper optimization. If we know that some instruction is more performant on a certain architecture, we should be able to use it instead.
+As mentionned, these build tags are optional. If not specified, we would resolve to the appropriate SIMD ISA available on the current OS and ARCH. However, I still think that these build tags are needed for deeper optimization. If we know that some instruction is more performant on a certain architecture, we should be able to enforce using it manually.
 
 Finally, having a build tag would let the developer choose at compile time which SIMD ISA to target and thus cross compile. We could write something similar to:
 
@@ -51,7 +51,7 @@ With this, we could take advantage of platform specific features and know at com
 
 ### Compiler Intrinsics
 
-The next crucial step would be to create a portable SIMD package that would rely on the compiler to generate SIMD instructions through compiler intrinsics. I demonstrated that this is feasible with a [POC](https://github.com/Clement-Jean/simd-go-POC) (only working on ARM64 NEON for now). As of right now, it looks like the following (you can see more examples [here](https://github.com/Clement-Jean/simd-go-POC/blob/main/tests/arithm_test.go)):
+The next crucial step would be to create a portable SIMD package that would rely on the compiler to generate SIMD instructions through compiler intrinsics. I demonstrated that this is feasible with a [POC](https://github.com/Clement-Jean/simd-go-POC). As of right now, it looks like the following (you can see more examples [here](https://github.com/Clement-Jean/simd-go-POC/blob/main/tests)):
 
 ```go
 package main
@@ -74,7 +74,6 @@ And the `AddU8x16` gets lowered down to a `VADD` instruction after SSA lowering.
 
 There are a few things to note:
 
--   We do not need to have type aliases. This bloats the code and we can simply rely on the good old fixed-size arrays.
 -   We can provide functions like `AddU8x16`, `AddU8x32`, etc. without changing the generics implementation. Other implementations like [Highway](https://github.com/google/highway/blob/87ab8b81c9b11d8e28c9ebbd593bef7c39f7a61d/hwy/ops/arm_neon-inl.h#L801), [Rust std::simd](https://doc.rust-lang.org/std/simd/prelude/struct.Simd.html), and [Zig @Vector](https://ziglang.org/documentation/master/#Vectors) rely on generics for the API. In Go, we do not have non-type parameter in generics, thus we cannot have something like `Simd[uint8, 16]`.
 -   We also do not have a compile time `Sizeof` which could have help us have:
     ```go
@@ -83,15 +82,46 @@ There are a few things to note:
 
 ## Challenges to Overcome
 
--   You might have noticed that the previous code snippet contained pointer on arrays and not arrays. This is because fixed-size arrays are not SSAable for now. I do not know much about why it is the case, but @randall77 taught me this when I was working on the POC.
--   Because we work with pointers on arrays, the performance is not great (allocations and load of non contiguous memory) and it requires us to do the LD/ST dance for each function in the simd package.
+- You might have noticed that the previous code snippet works with pointers on array. The main readon is that fixed-size arrays are not SSAable. But because we work with these pointers on arrays which are stored in general purpose registers, the performance is not great (allocations required and load of non contiguous memory) and it requires us to do the LD/ST dance for each function in the simd package.
+
+I believe we would need some kind of type aliases like the following:
+
+```go
+type I8x16 *[16]int8
+type U8x16 *[16]uint8
+//...
+```
+
+These types should not be indexable and only instantiable through functions like `Splat8x16`. The compiler would then promote these special types (or custom pointers on array passed to simd functions) to vector registers. This would remove all the LD/ST dance and memory allocation that I have in my POC and thus make everything a whole lot faster.
+
+In the end the previous code snippet could look like this:
+
+```go
+package main
+
+import (
+	"fmt"
+	"simd"
+)
+
+func main() {
+    a := simd.SplatU8x16(...)
+    b := simd.SplatU8x16(...)
+    c := simd.AddU8x16(a, b)
+
+    fmt.Printf("%v\n", c)
+}
+```
+
+- Naming these functions is not always easy. For example, NEON has instructions called `VMIN` and `UMINV`. The former returns a vector of min elements, and the latter reduce to the minimum in a given vector. As we don't have function overload, we will need to find a way to name them appropriately.
+
+I believe we should try to make the horizontal operations more verbose (e.g. `ReduceMin8x16`) and promote the vertical ones (e.g. `Min8x16`). For the example of `VMIN` and `UMINV`, the latter does not even seem to exist in SSE2 whereas the first one does.
 
 ## Scope
 
 This proposal focuses on adding the following set of intrinsics:
 
-- Splat
-- Masking
+- Initialization/Load (splat, shuffle)
 - Arithmetic (wrapping and saturating)
 - Bit (and, or, xor, shl, shr)
 - Reduce (any, all, eq, neq, max, min)
