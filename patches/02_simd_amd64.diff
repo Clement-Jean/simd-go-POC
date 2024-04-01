@@ -1,8 +1,8 @@
 diff --git a/src/cmd/compile/internal/amd64/ssa.go b/src/cmd/compile/internal/amd64/ssa.go
-index ab762c24f6..cc1570cc41 100644
+index ab762c24f6..7b0aaeed0a 100644
 --- a/src/cmd/compile/internal/amd64/ssa.go
 +++ b/src/cmd/compile/internal/amd64/ssa.go
-@@ -1250,6 +1250,241 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+@@ -1250,6 +1250,514 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
  		if base.Debug.Nil != 0 && v.Pos.Line() > 1 { // v.Pos.Line()==1 in generated wrappers
  			base.WarnfAt(v.Pos, "generated nil check")
  		}
@@ -241,14 +241,287 @@ index ab762c24f6..cc1570cc41 100644
 +		p3.To.Type = obj.TYPE_MEM
 +		p3.To.Reg = r0
 +
++	case ssa.OpAMD64LoweredSimdAnd8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// VPAND X1, X0, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		vmovdqa := x86.AVMOVDQA
++		p := s.Prog(vmovdqa)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		p1 := s.Prog(vmovdqa)
++		p1.From.Type = obj.TYPE_MEM
++		p1.From.Reg = r2
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = x86.REG_X1
++
++		vpand := x86.AVPAND
++		p2 := s.Prog(vpand)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = x86.REG_X0
++		p2.RestArgs = []obj.AddrPos{
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++		}
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = x86.REG_X0
++
++		p3 := s.Prog(vmovdqa)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = x86.REG_X0
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
++	case ssa.OpAMD64LoweredSimdOr8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// VPOR X1, X0, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		vmovdqa := x86.AVMOVDQA
++		p := s.Prog(vmovdqa)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		p1 := s.Prog(vmovdqa)
++		p1.From.Type = obj.TYPE_MEM
++		p1.From.Reg = r2
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = x86.REG_X1
++
++		vpor := x86.AVPOR
++		p2 := s.Prog(vpor)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = x86.REG_X0
++		p2.RestArgs = []obj.AddrPos{
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++		}
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = x86.REG_X0
++
++		p3 := s.Prog(vmovdqa)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = x86.REG_X0
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
++	case ssa.OpAMD64LoweredSimdXor8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// VPXOR X1, X0, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		vmovdqa := x86.AVMOVDQA
++		p := s.Prog(vmovdqa)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		p1 := s.Prog(vmovdqa)
++		p1.From.Type = obj.TYPE_MEM
++		p1.From.Reg = r2
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = x86.REG_X1
++
++		vpxor := x86.AVPXOR
++		p2 := s.Prog(vpxor)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = x86.REG_X0
++		p2.RestArgs = []obj.AddrPos{
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++		}
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = x86.REG_X0
++
++		p3 := s.Prog(vmovdqa)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = x86.REG_X0
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
++	case ssa.OpAMD64LoweredSimdMin8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// VPMINSB X1, X0, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		vmovdqa := x86.AVMOVDQA
++		p := s.Prog(vmovdqa)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		p1 := s.Prog(vmovdqa)
++		p1.From.Type = obj.TYPE_MEM
++		p1.From.Reg = r2
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = x86.REG_X1
++
++		vpminsb := x86.AVPMINSB
++		p2 := s.Prog(vpminsb)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = x86.REG_X0
++		p2.RestArgs = []obj.AddrPos{
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++		}
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = x86.REG_X0
++
++		p3 := s.Prog(vmovdqa)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = x86.REG_X0
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
++	case ssa.OpAMD64LoweredSimdMinU8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// VPMINUB X1, X0, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		vmovdqa := x86.AVMOVDQA
++		p := s.Prog(vmovdqa)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		p1 := s.Prog(vmovdqa)
++		p1.From.Type = obj.TYPE_MEM
++		p1.From.Reg = r2
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = x86.REG_X1
++
++		vpminub := x86.AVPMINUB
++		p2 := s.Prog(vpminub)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = x86.REG_X0
++		p2.RestArgs = []obj.AddrPos{
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++		}
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = x86.REG_X0
++
++		p3 := s.Prog(vmovdqa)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = x86.REG_X0
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
++	case ssa.OpAMD64LoweredSimdMax8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// VPMAXSB X1, X0, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		vmovdqa := x86.AVMOVDQA
++		p := s.Prog(vmovdqa)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		p1 := s.Prog(vmovdqa)
++		p1.From.Type = obj.TYPE_MEM
++		p1.From.Reg = r2
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = x86.REG_X1
++
++		vpmaxsb := x86.AVPMAXSB
++		p2 := s.Prog(vpmaxsb)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = x86.REG_X0
++		p2.RestArgs = []obj.AddrPos{
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++		}
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = x86.REG_X0
++
++		p3 := s.Prog(vmovdqa)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = x86.REG_X0
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
++	case ssa.OpAMD64LoweredSimdMaxU8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// VPMAXUB X1, X0, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		vmovdqa := x86.AVMOVDQA
++		p := s.Prog(vmovdqa)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		p1 := s.Prog(vmovdqa)
++		p1.From.Type = obj.TYPE_MEM
++		p1.From.Reg = r2
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = x86.REG_X1
++
++		vpmaxub := x86.AVPMAXUB
++		p2 := s.Prog(vpmaxub)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = x86.REG_X0
++		p2.RestArgs = []obj.AddrPos{
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++		}
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = x86.REG_X0
++
++		p3 := s.Prog(vmovdqa)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = x86.REG_X0
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
  	case ssa.OpAMD64MOVBatomicload, ssa.OpAMD64MOVLatomicload, ssa.OpAMD64MOVQatomicload:
  		p := s.Prog(v.Op.Asm())
  		p.From.Type = obj.TYPE_MEM
 diff --git a/src/cmd/compile/internal/ssa/_gen/AMD64.rules b/src/cmd/compile/internal/ssa/_gen/AMD64.rules
-index 2a4c59ebfc..2f0cbe6c78 100644
+index 2a4c59ebfc..7153112ff8 100644
 --- a/src/cmd/compile/internal/ssa/_gen/AMD64.rules
 +++ b/src/cmd/compile/internal/ssa/_gen/AMD64.rules
-@@ -549,6 +549,16 @@
+@@ -549,6 +549,26 @@
  
  (JumpTable idx) => (JUMPTABLE {makeJumpTableSym(b)} idx (LEAQ <typ.Uintptr> {makeJumpTableSym(b)} (SB)))
  
@@ -261,15 +534,25 @@ index 2a4c59ebfc..2f0cbe6c78 100644
 +(SimdSub8x16 ...) => (LoweredSimdSub8x16 ...)
 +(SimdSaturatingSubU8x16 ...) => (LoweredSimdSaturatingSubU8x16 ...)
 +(SimdSaturatingSub8x16 ...) => (LoweredSimdSaturatingSub8x16 ...)
++(SimdAndU8x16 ...) => (LoweredSimdAnd8x16 ...)
++(SimdAnd8x16 ...) => (LoweredSimdAnd8x16 ...)
++(SimdOrU8x16 ...) => (LoweredSimdOr8x16 ...)
++(SimdOr8x16 ...) => (LoweredSimdOr8x16 ...)
++(SimdXorU8x16 ...) => (LoweredSimdXor8x16 ...)
++(SimdXor8x16 ...) => (LoweredSimdXor8x16 ...)
++(SimdMaxU8x16 ...) => (LoweredSimdMaxU8x16 ...)
++(SimdMax8x16 ...) => (LoweredSimdMax8x16 ...)
++(SimdMinU8x16 ...) => (LoweredSimdMinU8x16 ...)
++(SimdMin8x16 ...) => (LoweredSimdMin8x16 ...)
 +
  // Atomic loads.  Other than preserving their ordering with respect to other loads, nothing special here.
  (AtomicLoad8 ptr mem) => (MOVBatomicload ptr mem)
  (AtomicLoad32 ptr mem) => (MOVLatomicload ptr mem)
 diff --git a/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go b/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
-index 606171947b..405c075d71 100644
+index 606171947b..358b120181 100644
 --- a/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
 +++ b/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
-@@ -981,6 +981,30 @@ func init() {
+@@ -981,6 +981,57 @@ func init() {
  		{name: "LoweredPanicBoundsB", argLength: 3, aux: "Int64", reg: regInfo{inputs: []regMask{cx, dx}}, typ: "Mem", call: true}, // arg0=idx, arg1=len, arg2=mem, returns memory. AuxInt contains report code (see PanicBounds in generic.go).
  		{name: "LoweredPanicBoundsC", argLength: 3, aux: "Int64", reg: regInfo{inputs: []regMask{ax, cx}}, typ: "Mem", call: true}, // arg0=idx, arg1=len, arg2=mem, returns memory. AuxInt contains report code (see PanicBounds in generic.go).
  
@@ -297,14 +580,41 @@ index 606171947b..405c075d71 100644
 +		// *arg0 = arg1 - arg2. arg3=mem. returns memory.
 +		{name: "LoweredSimdSaturatingSub8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
 +
++		// SIMD and i8x16.
++		// *arg0 = arg1 & arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdAnd8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD or i8x16.
++		// *arg0 = arg1 | arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdOr8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD xor i8x16.
++		// *arg0 = arg1 ^ arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdXor8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD max i8x16.
++		// *arg0 = max(arg1, arg2). arg3=mem. returns memory.
++		{name: "LoweredSimdMax8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD max u8x16.
++		// *arg0 = max(arg1, arg2). arg3=mem. returns memory.
++		{name: "LoweredSimdMaxU8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD min i8x16.
++		// *arg0 = min(arg1, arg2). arg3=mem. returns memory.
++		{name: "LoweredSimdMin8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++		// SIMD min u8x16.
++		// *arg0 = min(arg1, arg2). arg3=mem. returns memory.
++		{name: "LoweredSimdMinU8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
  		// Constant flag values. For any comparison, there are 5 possible
  		// outcomes: the three from the signed total order (<,==,>) and the
  		// three from the unsigned total order. The == cases overlap.
 diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
-index 88326aa8b4..1234637cf8 100644
+index 88326aa8b4..4e4fb939b9 100644
 --- a/src/cmd/compile/internal/ssa/opGen.go
 +++ b/src/cmd/compile/internal/ssa/opGen.go
-@@ -1052,6 +1052,12 @@ const (
+@@ -1052,6 +1052,19 @@ const (
  	OpAMD64LoweredPanicBoundsA
  	OpAMD64LoweredPanicBoundsB
  	OpAMD64LoweredPanicBoundsC
@@ -314,10 +624,17 @@ index 88326aa8b4..1234637cf8 100644
 +	OpAMD64LoweredSimdSub8x16
 +	OpAMD64LoweredSimdSaturatingSubU8x16
 +	OpAMD64LoweredSimdSaturatingSub8x16
++	OpAMD64LoweredSimdAnd8x16
++	OpAMD64LoweredSimdOr8x16
++	OpAMD64LoweredSimdXor8x16
++	OpAMD64LoweredSimdMax8x16
++	OpAMD64LoweredSimdMaxU8x16
++	OpAMD64LoweredSimdMin8x16
++	OpAMD64LoweredSimdMinU8x16
  	OpAMD64FlagEQ
  	OpAMD64FlagLT_ULT
  	OpAMD64FlagLT_UGT
-@@ -13882,6 +13888,84 @@ var opcodeTable = [...]opInfo{
+@@ -13882,6 +13895,175 @@ var opcodeTable = [...]opInfo{
  			},
  		},
  	},
@@ -399,14 +716,105 @@ index 88326aa8b4..1234637cf8 100644
 +			},
 +		},
 +	},
++	{
++		name:           "LoweredSimdAnd8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdOr8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdXor8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdMax8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdMaxU8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdMin8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdMinU8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
  	{
  		name:   "FlagEQ",
  		argLen: 0,
 diff --git a/src/cmd/compile/internal/ssa/rewriteAMD64.go b/src/cmd/compile/internal/ssa/rewriteAMD64.go
-index ba71189703..3d9dc8ffd8 100644
+index ba71189703..d6cad52590 100644
 --- a/src/cmd/compile/internal/ssa/rewriteAMD64.go
 +++ b/src/cmd/compile/internal/ssa/rewriteAMD64.go
-@@ -1092,6 +1092,30 @@ func rewriteValueAMD64(v *Value) bool {
+@@ -1092,6 +1092,60 @@ func rewriteValueAMD64(v *Value) bool {
  	case OpSignExt8to64:
  		v.Op = OpAMD64MOVBQSX
  		return true
@@ -415,6 +823,30 @@ index ba71189703..3d9dc8ffd8 100644
 +		return true
 +	case OpSimdAddU8x16:
 +		v.Op = OpAMD64LoweredSimdAdd8x16
++		return true
++	case OpSimdAnd8x16:
++		v.Op = OpAMD64LoweredSimdAnd8x16
++		return true
++	case OpSimdAndU8x16:
++		v.Op = OpAMD64LoweredSimdAnd8x16
++		return true
++	case OpSimdMax8x16:
++		v.Op = OpAMD64LoweredSimdMax8x16
++		return true
++	case OpSimdMaxU8x16:
++		v.Op = OpAMD64LoweredSimdMaxU8x16
++		return true
++	case OpSimdMin8x16:
++		v.Op = OpAMD64LoweredSimdMin8x16
++		return true
++	case OpSimdMinU8x16:
++		v.Op = OpAMD64LoweredSimdMinU8x16
++		return true
++	case OpSimdOr8x16:
++		v.Op = OpAMD64LoweredSimdOr8x16
++		return true
++	case OpSimdOrU8x16:
++		v.Op = OpAMD64LoweredSimdOr8x16
 +		return true
 +	case OpSimdSaturatingAdd8x16:
 +		v.Op = OpAMD64LoweredSimdSaturatingAdd8x16
@@ -434,14 +866,20 @@ index ba71189703..3d9dc8ffd8 100644
 +	case OpSimdSubU8x16:
 +		v.Op = OpAMD64LoweredSimdSub8x16
 +		return true
++	case OpSimdXor8x16:
++		v.Op = OpAMD64LoweredSimdXor8x16
++		return true
++	case OpSimdXorU8x16:
++		v.Op = OpAMD64LoweredSimdXor8x16
++		return true
  	case OpSlicemask:
  		return rewriteValueAMD64_OpSlicemask(v)
  	case OpSpectreIndex:
 diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
-index 760a7f8d06..899b5e890d 100644
+index 760a7f8d06..d7e8aaf470 100644
 --- a/src/cmd/compile/internal/ssagen/ssa.go
 +++ b/src/cmd/compile/internal/ssagen/ssa.go
-@@ -4293,37 +4293,37 @@ func InitTables() {
+@@ -4293,79 +4293,79 @@ func InitTables() {
  			s.vars[memVar] = s.newValue4(ssa.OpSimdAdd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
  			return nil
  		},
@@ -485,7 +923,56 @@ index 760a7f8d06..899b5e890d 100644
  	addF("runtime/internal/simd", "And8x16",
  		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
  			s.vars[memVar] = s.newValue4(ssa.OpSimdAnd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
-@@ -5123,14 +5123,14 @@ func InitTables() {
+ 			return nil
+ 		},
+-		sys.ARM64)
++		sys.AMD64, sys.ARM64)
+ 	addF("runtime/internal/simd", "Or8x16",
+ 		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+ 			s.vars[memVar] = s.newValue4(ssa.OpSimdOr8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
+ 			return nil
+ 		},
+-		sys.ARM64)
++		sys.AMD64, sys.ARM64)
+ 	addF("runtime/internal/simd", "Xor8x16",
+ 		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+ 			s.vars[memVar] = s.newValue4(ssa.OpSimdXor8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
+ 			return nil
+ 		},
+-		sys.ARM64)
++		sys.AMD64, sys.ARM64)
+ 	addF("runtime/internal/simd", "Max8x16",
+ 		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+ 			s.vars[memVar] = s.newValue4(ssa.OpSimdMax8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
+ 			return nil
+ 		},
+-		sys.ARM64)
++		sys.AMD64, sys.ARM64)
+ 	addF("runtime/internal/simd", "MaxU8x16",
+ 		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+ 			s.vars[memVar] = s.newValue4(ssa.OpSimdMaxU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
+ 			return nil
+ 		},
+-		sys.ARM64)
++		sys.AMD64, sys.ARM64)
+ 	addF("runtime/internal/simd", "Min8x16",
+ 		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+ 			s.vars[memVar] = s.newValue4(ssa.OpSimdMin8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
+ 			return nil
+ 		},
+-		sys.ARM64)
++		sys.AMD64, sys.ARM64)
+ 	addF("runtime/internal/simd", "MinU8x16",
+ 		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+ 			s.vars[memVar] = s.newValue4(ssa.OpSimdMinU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
+ 			return nil
+ 		},
+-		sys.ARM64)
++		sys.AMD64, sys.ARM64)
+ 	addF("runtime/internal/simd", "ReduceMax8x16",
+ 		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+ 			v := s.newValue2(ssa.OpSimdReduceMax8x16, types.NewTuple(types.Types[types.TINT8], types.TypeMem), args[0], s.mem())
+@@ -5123,24 +5123,24 @@ func InitTables() {
  	alias("runtime/internal/sys", "OnesCount64", "math/bits", "OnesCount64", all...)
  
  	/******** simd ********/
@@ -497,6 +984,16 @@ index 760a7f8d06..899b5e890d 100644
 -	alias("simd", "sub8x16", "runtime/internal/simd", "Sub8x16", sys.ArchARM64)
 -	alias("simd", "saturatingSubU8x16", "runtime/internal/simd", "SaturatingSubU8x16", sys.ArchARM64)
 -	alias("simd", "saturatingSub8x16", "runtime/internal/simd", "SaturatingSub8x16", sys.ArchARM64)
+-	alias("simd", "andU8x16", "runtime/internal/simd", "And8x16", sys.ArchARM64)
+-	alias("simd", "and8x16", "runtime/internal/simd", "And8x16", sys.ArchARM64)
+-	alias("simd", "orU8x16", "runtime/internal/simd", "Or8x16", sys.ArchARM64)
+-	alias("simd", "or8x16", "runtime/internal/simd", "Or8x16", sys.ArchARM64)
+-	alias("simd", "xorU8x16", "runtime/internal/simd", "Xor8x16", sys.ArchARM64)
+-	alias("simd", "xor8x16", "runtime/internal/simd", "Xor8x16", sys.ArchARM64)
+-	alias("simd", "maxU8x16", "runtime/internal/simd", "MaxU8x16", sys.ArchARM64)
+-	alias("simd", "max8x16", "runtime/internal/simd", "Max8x16", sys.ArchARM64)
+-	alias("simd", "minU8x16", "runtime/internal/simd", "MinU8x16", sys.ArchARM64)
+-	alias("simd", "min8x16", "runtime/internal/simd", "Min8x16", sys.ArchARM64)
 +	alias("simd", "addU8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64, sys.ArchAMD64)
 +	alias("simd", "add8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64, sys.ArchAMD64)
 +	alias("simd", "saturatingAddU8x16", "runtime/internal/simd", "SaturatingAddU8x16", sys.ArchARM64, sys.ArchAMD64)
@@ -505,6 +1002,16 @@ index 760a7f8d06..899b5e890d 100644
 +	alias("simd", "sub8x16", "runtime/internal/simd", "Sub8x16", sys.ArchARM64, sys.ArchAMD64)
 +	alias("simd", "saturatingSubU8x16", "runtime/internal/simd", "SaturatingSubU8x16", sys.ArchARM64, sys.ArchAMD64)
 +	alias("simd", "saturatingSub8x16", "runtime/internal/simd", "SaturatingSub8x16", sys.ArchARM64, sys.ArchAMD64)
- 	alias("simd", "andU8x16", "runtime/internal/simd", "And8x16", sys.ArchARM64)
- 	alias("simd", "and8x16", "runtime/internal/simd", "And8x16", sys.ArchARM64)
- 	alias("simd", "orU8x16", "runtime/internal/simd", "Or8x16", sys.ArchARM64)
++	alias("simd", "andU8x16", "runtime/internal/simd", "And8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "and8x16", "runtime/internal/simd", "And8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "orU8x16", "runtime/internal/simd", "Or8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "or8x16", "runtime/internal/simd", "Or8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "xorU8x16", "runtime/internal/simd", "Xor8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "xor8x16", "runtime/internal/simd", "Xor8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "maxU8x16", "runtime/internal/simd", "MaxU8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "max8x16", "runtime/internal/simd", "Max8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "minU8x16", "runtime/internal/simd", "MinU8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "min8x16", "runtime/internal/simd", "Min8x16", sys.ArchARM64, sys.ArchAMD64)
+ 	alias("simd", "ReduceMaxU8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
+ 	alias("simd", "ReduceMax8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
+ 	alias("simd", "ReduceMinU8x16", "runtime/internal/simd", "ReduceMinU8x16", sys.ArchARM64)
