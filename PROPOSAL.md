@@ -22,8 +22,8 @@ The main goal of this proposal is to provide an alternative approach to designin
 
 This proposal mainly propose two things:
 
--   Adding a new kind of build tag that let user specify which SIMD ISA to use at compile time.
--   Using compiler intrinsics to generate inline SIMD instructions in the code.
+- Adding a new kind of build tag that let user specify which SIMD ISA to use at compile time.
+- Using compiler intrinsics to generate inline SIMD instructions in the code.
 
 ### Build Tag
 
@@ -41,13 +41,13 @@ For the first point, I was thinking about optional build tags like the following
 
 etc.
 
-As mentionned, these build tags are optional. If not specified, we would resolve to the appropriate SIMD ISA available on the current OS and ARCH. However, I still think that these build tags are needed for deeper optimization. If we know that some instruction is more performant on a certain architecture, we should be able to enforce using it manually.
+As mentionned, these build tags are optional. If not specified, we would resolve to the appropriate SIMD ISA available on the current OS and ARCH. However, I still think that these build tags are needed for deeper optimization and platform specific operations. If we know that some instruction is more performant or only available on a certain architecture, we should be able to enforce using it manually.
 
 Finally, having a build tag would let the developer choose at compile time which SIMD ISA to target and thus cross compile. We could write something similar to:
 
     $ go build -simd neon
 
-With this, we could take advantage of platform specific features and know at compile time the size of the vector registers (e.g. 128 or 256 bits). This would help us make better decisions for optimizations.
+With this, we could take advantage of platform specific features and know at compile time the size of the vector registers (e.g. 128 or 256 bits). This would help us make better decisions for optimizations on the compiler side.
 
 ### Compiler Intrinsics
 
@@ -74,8 +74,8 @@ And the `AddU8x16` gets lowered down to a `VADD` instruction after SSA lowering.
 
 There are a few things to note:
 
--   We can provide functions like `AddU8x16`, `AddU8x32`, etc. without changing the generics implementation. Other implementations like [Highway](https://github.com/google/highway/blob/87ab8b81c9b11d8e28c9ebbd593bef7c39f7a61d/hwy/ops/arm_neon-inl.h#L801), [Rust std::simd](https://doc.rust-lang.org/std/simd/prelude/struct.Simd.html), and [Zig @Vector](https://ziglang.org/documentation/master/#Vectors) rely on generics for the API. In Go, we do not have non-type parameter in generics, thus we cannot have something like `Simd[uint8, 16]`.
--   We also do not have a compile time `Sizeof` which could have help us have:
+- We can provide functions like `AddU8x16`, `AddU8x32`, etc. without changing the generics implementation. Other implementations like [Highway](https://github.com/google/highway/blob/87ab8b81c9b11d8e28c9ebbd593bef7c39f7a61d/hwy/ops/arm_neon-inl.h#L801), [Rust std::simd](https://doc.rust-lang.org/std/simd/prelude/struct.Simd.html), and [Zig @Vector](https://ziglang.org/documentation/master/#Vectors) rely on generics for the API. In Go, we do not have non-type parameter in generics, thus we cannot have something like `Simd[uint8, 16]`.
+- We also do not have a compile time `Sizeof` which could have help us have:
     ```go
     type Simd[T SupportedSimdTypes] = [VectorRegisterSize / SizeofInBits(T)]T
     ```
@@ -133,15 +133,15 @@ more can be added later but we are trying to be realistic. We can discuss what i
 
 Without SIMD, we are missing on a lot of optimizations. Here is a non exhaustive list of concrete things that could improve performance in daily life scenarios:
 
--   [simdjson](https://github.com/simdjson/simdjson)
--   [Decoding Billions of Integers Per Second Through Vectorization](https://people.csail.mit.edu/jshun/6886-s19/lectures/lecture19-1.pdf)
--   [Vectorized and performance-portable Quicksort](https://opensource.googleblog.com/2022/06/Vectorized%20and%20performance%20portable%20Quicksort.html)
--   [Introduction to Hyperscan](https://www.intel.com/content/www/us/en/developer/articles/technical/introduction-to-hyperscan.html)
+- [simdjson](https://github.com/simdjson/simdjson)
+- [Decoding Billions of Integers Per Second Through Vectorization](https://people.csail.mit.edu/jshun/6886-s19/lectures/lecture19-1.pdf)
+- [Vectorized and performance-portable Quicksort](https://opensource.googleblog.com/2022/06/Vectorized%20and%20performance%20portable%20Quicksort.html)
+- [Introduction to Hyperscan](https://www.intel.com/content/www/us/en/developer/articles/technical/introduction-to-hyperscan.html)
 
 Furthermore, it would make these currently existing packages more portable and maintainable:
 
--   [simdjson-go](https://github.com/minio/simdjson-go)
--   [sha256-simd](https://github.com/minio/sha256-simd)
--   [md5-simd](https://github.com/minio/md5-simd)
+- [simdjson-go](https://github.com/minio/simdjson-go)
+- [sha256-simd](https://github.com/minio/sha256-simd)
+- [md5-simd](https://github.com/minio/md5-simd)
 
 The are obviously way more applications of SIMD. I am just trying to say that this is useful in practical scenarios, not only in theory.
