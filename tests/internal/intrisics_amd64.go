@@ -56,3 +56,45 @@ func MmSubsEpi8(r *M128I, v0 *M128I, v1 *M128I)
 //go:linkname MmSubsEpu8 MmSubsEpu8
 //go:noescape
 func MmSubsEpu8(r *M128I, v0 *M128I, v1 *M128I)
+
+// Compute the bitwise AND of 128 bits (representing integer data) in a and b, and store the result in dst.
+//
+//go:linkname MmAndSi128 MmAndSi128
+//go:noescape
+func MmAndSi128(r *M128I, v0 *M128I, v1 *M128I)
+
+// Compute the bitwise OR of 128 bits (representing integer data) in a and b, and store the result in dst.
+//
+//go:linkname MmOrSi128 MmOrSi128
+//go:noescape
+func MmOrSi128(r *M128I, v0 *M128I, v1 *M128I)
+
+// Compute the bitwise Xor of 128 bits (representing integer data) in a and b, and store the result in dst.
+//
+//go:linkname MmXorSi128 MmXorSi128
+//go:noescape
+func MmXorSi128(r *M128I, v0 *M128I, v1 *M128I)
+
+// Compare packed signed 8-bit integers in a and b, and store packed maximum values in dst.
+//
+//go:linkname MmMaxEpi8 MmMaxEpi8
+//go:noescape
+func MmMaxEpi8(r *M128I, v0 *M128I, v1 *M128I)
+
+// Compare packed unsigned 8-bit integers in a and b, and store packed maximum values in dst.
+//
+//go:linkname MmMaxEpu8 MmMaxEpu8
+//go:noescape
+func MmMaxEpu8(r *M128I, v0 *M128I, v1 *M128I)
+
+// Compare packed signed 8-bit integers in a and b, and store packed minimum values in dst.
+//
+//go:linkname MmMinEpi8 MmMinEpi8
+//go:noescape
+func MmMinEpi8(r *M128I, v0 *M128I, v1 *M128I)
+
+// Compare packed unsigned 8-bit integers in a and b, and store packed minimum values in dst.
+//
+//go:linkname MmMinEpu8 MmMinEpu8
+//go:noescape
+func MmMinEpu8(r *M128I, v0 *M128I, v1 *M128I)

@@ -88,70 +88,100 @@ func referenceSaturatingSubU8x16(a, b *[16]uint8) *[16]uint8 {
 
 func referenceAnd8x16(a, b *[16]int8) *[16]int8 {
 	result := new([16]int8)
+	internal.MmAndSi128(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceAndU8x16(a, b *[16]uint8) *[16]uint8 {
 	result := new([16]uint8)
+	internal.MmAndSi128(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceOr8x16(a, b *[16]int8) *[16]int8 {
 	result := new([16]int8)
+	internal.MmOrSi128(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceOrU8x16(a, b *[16]uint8) *[16]uint8 {
 	result := new([16]uint8)
+	internal.MmOrSi128(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceXor8x16(a, b *[16]int8) *[16]int8 {
 	result := new([16]int8)
+	internal.MmXorSi128(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceXorU8x16(a, b *[16]uint8) *[16]uint8 {
 	result := new([16]uint8)
+	internal.MmXorSi128(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceMax8x16(a, b *[16]int8) *[16]int8 {
 	result := new([16]int8)
+	internal.MmMaxEpi8( // requires SSE4.1
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceMaxU8x16(a, b *[16]uint8) *[16]uint8 {
 	result := new([16]uint8)
+	internal.MmMaxEpu8(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceMin8x16(a, b *[16]int8) *[16]int8 {
 	result := new([16]int8)
+	internal.MmMinEpi8( // requires SSE4.1
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
 
 func referenceMinU8x16(a, b *[16]uint8) *[16]uint8 {
 	result := new([16]uint8)
-	return result
-}
-
-func referenceReduceMax8x16(a *[16]int8) int8 {
-	var result int8
-	return result
-}
-
-func referenceReduceMaxU8x16(a *[16]uint8) uint8 {
-	var result uint8
-	return result
-}
-
-func referenceReduceMin8x16(a *[16]int8) int8 {
-	var result int8
-	return result
-}
-
-func referenceReduceMinU8x16(a *[16]uint8) uint8 {
-	var result uint8
+	internal.MmMinEpu8(
+		(*internal.M128I)(unsafe.Pointer(result)),
+		(*internal.M128I)(unsafe.Pointer(a)),
+		(*internal.M128I)(unsafe.Pointer(b)),
+	)
 	return result
 }
