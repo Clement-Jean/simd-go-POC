@@ -57,8 +57,8 @@ The next crucial step would be to create a portable SIMD package that would rely
 package main
 
 import (
-	"fmt"
-	"simd"
+    "fmt"
+    "simd"
 )
 
 func main() {
@@ -100,8 +100,8 @@ In the end the previous code snippet could look like this:
 package main
 
 import (
-	"fmt"
-	"simd"
+    "fmt"
+    "simd"
 )
 
 func main() {
