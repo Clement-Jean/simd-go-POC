@@ -124,7 +124,6 @@ This proposal focuses on adding the following set of intrinsics:
 - Initialization/Load (splat, shuffle)
 - Arithmetic (wrapping and saturating)
 - Bit (and, or, xor, shl, shr)
-- Reduce (any, all, eq, neq, max, min)
 - Table Lookup
 
 more can be added later but we are trying to be realistic. We can discuss what is to be included.
