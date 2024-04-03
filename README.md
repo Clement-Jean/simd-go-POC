@@ -46,12 +46,8 @@ git submodule update --init --recursive
 pushd go && ../build.sh && popd
 ```
 
-## SSA trace
-
-From root, execute:
+## Run
 
 ```
-GOSSAFUNC=AddU8x16 go/bin/go run .
+go/bin/go run .
 ```
-
-you will get a file called `ssa.html`, just open that in your browser
