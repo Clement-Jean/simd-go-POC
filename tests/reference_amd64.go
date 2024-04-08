@@ -6,23 +6,21 @@ import (
 	"example.com/tests/internal"
 )
 
-func referenceAdd8x16(a, b *[16]int8) *[16]int8 {
-	result := new([16]int8)
-	internal.MmAddEpi8(
-		(*internal.M128I)(unsafe.Pointer(result)),
-		(*internal.M128I)(unsafe.Pointer(a)),
-		(*internal.M128I)(unsafe.Pointer(b)),
-	)
+func referenceAddU8x16(a, b *[16]uint8) [16]uint8 {
+	var result [16]uint8
+	_a := internal.MmSetrEpi8(*a)
+	_b := internal.MmSetrEpi8(*b)
+	_result := internal.MmAddEpi8(_a, _b)
+	internal.MmStoreuSi128((*internal.Uint8)(unsafe.Pointer(&result[0])), _result)
 	return result
 }
 
-func referenceAddU8x16(a, b *[16]uint8) *[16]uint8 {
-	result := new([16]uint8)
-	internal.MmAddEpi8(
-		(*internal.M128I)(unsafe.Pointer(result)),
-		(*internal.M128I)(unsafe.Pointer(a)),
-		(*internal.M128I)(unsafe.Pointer(b)),
-	)
+func referenceAdd8x16(a, b *[16]int8) [16]int8 {
+	var result [16]int8
+	_a := internal.MmSetrEpi8(*a)
+	_b := internal.MmSetrEpi8(*b)
+	_result := internal.MmAddEpi8(_a, _b)
+	internal.MmStoreuSi128((*internal.Uint8)(unsafe.Pointer(&result[0])), _result)
 	return result
 }
 
