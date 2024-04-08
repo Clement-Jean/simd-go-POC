@@ -31,7 +31,7 @@ func TestAdd8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceAdd8x16(&test.a, &test.b)
+		expected := referenceAdd8x16(test.a, test.b)
 		got := simd.Add8x16(&test.a, &test.b)
 
 		for i := 0; i < len(got); i++ {
@@ -62,7 +62,7 @@ func TestAddU8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceAddU8x16(&test.a, &test.b)
+		expected := referenceAddU8x16(test.a, test.b)
 		got := simd.AddU8x16(&test.a, &test.b)
 
 		for i := 0; i < len(got); i++ {
