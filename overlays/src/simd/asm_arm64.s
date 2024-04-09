@@ -1,13 +1,13 @@
 #include "textflag.h"
-	
-TEXT ·ReduceMaxU8x16(SB),NOSPLIT,$0
+
+TEXT ·reduceMaxU8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·ReduceMaxU8x16(SB)
 
-TEXT ·ReduceMax8x16(SB),NOSPLIT,$0
+TEXT ·reduceMax8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·ReduceMax8x16(SB)
 
-TEXT ·ReduceMinU8x16(SB),NOSPLIT,$0
+TEXT ·reduceMinU8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·ReduceMinU8x16(SB)
 
-TEXT ·ReduceMin8x16(SB),NOSPLIT,$0
+TEXT ·reduceMin8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·ReduceMin8x16(SB)

@@ -15,4 +15,4 @@ cp -p -P -v -R ../overlays/* ./
 
 # Build Go
 pushd "src" || exit
-./make.bash
+GODEBUG=installgoroot=all ./make.bash

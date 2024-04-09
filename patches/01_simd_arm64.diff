@@ -1412,10 +1412,10 @@ index c794d6ffd9..760a7f8d06 100644
 +	alias("simd", "max8x16", "runtime/internal/simd", "Max8x16", sys.ArchARM64)
 +	alias("simd", "minU8x16", "runtime/internal/simd", "MinU8x16", sys.ArchARM64)
 +	alias("simd", "min8x16", "runtime/internal/simd", "Min8x16", sys.ArchARM64)
-+	alias("simd", "ReduceMaxU8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
-+	alias("simd", "ReduceMax8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
-+	alias("simd", "ReduceMinU8x16", "runtime/internal/simd", "ReduceMinU8x16", sys.ArchARM64)
-+	alias("simd", "ReduceMin8x16", "runtime/internal/simd", "ReduceMin8x16", sys.ArchARM64)
++	alias("simd", "reduceMaxU8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
++	alias("simd", "reduceMax8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
++	alias("simd", "reduceMinU8x16", "runtime/internal/simd", "ReduceMinU8x16", sys.ArchARM64)
++	alias("simd", "reduceMin8x16", "runtime/internal/simd", "ReduceMin8x16", sys.ArchARM64)
 +
  	/******** sync/atomic ********/
  
