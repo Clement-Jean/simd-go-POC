@@ -33,9 +33,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpaddb := x86.AVPADDB
 +		p2 := s.Prog(vpaddb)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
@@ -72,9 +72,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpsubb := x86.AVPSUBB
 +		p2 := s.Prog(vpsubb)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
@@ -111,9 +111,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpaddsb := x86.AVPADDSB
 +		p2 := s.Prog(vpaddsb)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
@@ -150,9 +150,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpaddusb := x86.AVPADDUSB
 +		p2 := s.Prog(vpaddusb)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
@@ -189,9 +189,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpsubsb := x86.AVPSUBSB
 +		p2 := s.Prog(vpsubsb)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
@@ -228,9 +228,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpsubusb := x86.AVPSUBUSB
 +		p2 := s.Prog(vpsubusb)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
@@ -267,9 +267,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpand := x86.AVPAND
 +		p2 := s.Prog(vpand)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
@@ -306,9 +306,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpor := x86.AVPOR
 +		p2 := s.Prog(vpor)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
@@ -345,9 +345,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpxor := x86.AVPXOR
 +		p2 := s.Prog(vpxor)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
@@ -384,9 +384,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpminsb := x86.AVPMINSB
 +		p2 := s.Prog(vpminsb)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
@@ -423,9 +423,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpminub := x86.AVPMINUB
 +		p2 := s.Prog(vpminub)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
@@ -462,9 +462,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpmaxsb := x86.AVPMAXSB
 +		p2 := s.Prog(vpmaxsb)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
@@ -501,9 +501,9 @@ index ab762c24f6..7b0aaeed0a 100644
 +		vpmaxub := x86.AVPMAXUB
 +		p2 := s.Prog(vpmaxub)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
++		p2.From.Reg = x86.REG_X1
 +		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X1}},
++			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
 +		}
 +		p2.To.Type = obj.TYPE_REG
 +		p2.To.Reg = x86.REG_X0
