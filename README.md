@@ -43,9 +43,9 @@ go/bin/go run .
 | `OrU8x16`            | :white_check_mark: | :white_check_mark:  |
 | `Xor8x16`            | :white_check_mark: | :white_check_mark:  |
 | `Xor8x16`            | :white_check_mark: | :white_check_mark:  |
-| `Max8x16`            | :white_check_mark: | :white_check_mark:  |
+| `Max8x16`            | :white_check_mark: | :white_check_mark: (SSE4.1)  |
 | `MaxU8x16`           | :white_check_mark: | :white_check_mark:  |
-| `Min8x16`            | :white_check_mark: | :white_check_mark:  |
+| `Min8x16`            | :white_check_mark: | :white_check_mark: (SSE4.1) |
 | `MinU8x16`           | :white_check_mark: | :white_check_mark:  |
 | `ReduceMax8x16`      | :white_check_mark: | :x:  |
 | `ReduceMaxU8x16`     | :white_check_mark: | :x:  |
