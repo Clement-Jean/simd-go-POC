@@ -57,8 +57,8 @@ The next crucial step would be to create a portable SIMD package that would rely
 package main
 
 import (
-	"fmt"
-	"simd"
+    "fmt"
+    "simd"
 )
 
 func main() {
@@ -100,8 +100,8 @@ In the end the previous code snippet could look like this:
 package main
 
 import (
-	"fmt"
-	"simd"
+    "fmt"
+    "simd"
 )
 
 func main() {
@@ -124,7 +124,6 @@ This proposal focuses on adding the following set of intrinsics:
 - Initialization/Load (splat, shuffle)
 - Arithmetic (wrapping and saturating)
 - Bit (and, or, xor, shl, shr)
-- Reduce (any, all, eq, neq, max, min)
 - Table Lookup
 
 more can be added later but we are trying to be realistic. We can discuss what is to be included.

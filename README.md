@@ -2,6 +2,29 @@
 
 This repository is an attempt at adding SIMD to Go through compiler intrinsics.
 
+## Init
+
+```
+git submodule update --init --recursive
+```
+
+## Build
+
+```
+pushd go && ../build.sh && popd
+```
+
+## Run
+
+```
+go/bin/go run .
+```
+
+## Architecture
+
+- patches -> patching existing files
+- overlays -> new dirs+files
+
 ## Supported Intrinsics
 
 | Intrinsic            | NEON               | SSE2 |
@@ -28,30 +51,3 @@ This repository is an attempt at adding SIMD to Go through compiler intrinsics.
 | `ReduceMaxU8x16`     | :white_check_mark: | :x:  |
 | `ReduceMin8x16`      | :white_check_mark: | :x:  |
 | `ReduceMinU8x16`     | :white_check_mark: | :x:  |
-
-## Architecture
-
-- patches -> patching existing files
-- overlays -> new dirs+files
-
-## Init
-
-```
-git submodule update --init --recursive
-```
-
-## Build
-
-```
-pushd go && ../build.sh && popd
-```
-
-## SSA trace
-
-From root, execute:
-
-```
-GOSSAFUNC=AddU8x16 go/bin/go run .
-```
-
-you will get a file called `ssa.html`, just open that in your browser

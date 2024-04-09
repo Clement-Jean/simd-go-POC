@@ -21,8 +21,8 @@ func TestReduceMax8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := simd.ReduceMax8x16(&test.a)
-		expected := referenceReduceMax8x16(&test.a)
+		got := simd.ReduceMax8x16(test.a)
+		expected := referenceReduceMax8x16(test.a)
 
 		if expected != got {
 			t.Fatalf("%v: expected %d, got %d\n", test.a, expected, got)
@@ -46,8 +46,8 @@ func TestReduceMin8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := simd.ReduceMin8x16(&test.a)
-		expected := referenceReduceMin8x16(&test.a)
+		got := simd.ReduceMin8x16(test.a)
+		expected := referenceReduceMin8x16(test.a)
 
 		if expected != got {
 			t.Fatalf("%v: expected %d, got %d\n", test.a, expected, got)

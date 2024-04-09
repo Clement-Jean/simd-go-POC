@@ -26,8 +26,8 @@ func TestAnd8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceAnd8x16(&test.a, &test.b)
-		got := simd.And8x16(&test.a, &test.b)
+		expected := referenceAnd8x16(test.a, test.b)
+		got := simd.And8x16(test.a, test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
@@ -57,8 +57,8 @@ func TestAndU8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceAndU8x16(&test.a, &test.b)
-		got := simd.AndU8x16(&test.a, &test.b)
+		expected := referenceAndU8x16(test.a, test.b)
+		got := simd.AndU8x16(test.a, test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
@@ -88,8 +88,8 @@ func TestOr8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceOr8x16(&test.a, &test.b)
-		got := simd.Or8x16(&test.a, &test.b)
+		expected := referenceOr8x16(test.a, test.b)
+		got := simd.Or8x16(test.a, test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
@@ -119,8 +119,8 @@ func TestOrU8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceOrU8x16(&test.a, &test.b)
-		got := simd.OrU8x16(&test.a, &test.b)
+		expected := referenceOrU8x16(test.a, test.b)
+		got := simd.OrU8x16(test.a, test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
@@ -150,8 +150,8 @@ func TestXor8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceXor8x16(&test.a, &test.b)
-		got := simd.Xor8x16(&test.a, &test.b)
+		expected := referenceXor8x16(test.a, test.b)
+		got := simd.Xor8x16(test.a, test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
@@ -181,8 +181,8 @@ func TestXorU8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceXorU8x16(&test.a, &test.b)
-		got := simd.XorU8x16(&test.a, &test.b)
+		expected := referenceXorU8x16(test.a, test.b)
+		got := simd.XorU8x16(test.a, test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {

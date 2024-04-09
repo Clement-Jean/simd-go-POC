@@ -25,8 +25,8 @@ func TestMax8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceMax8x16(&test.a, &test.b)
-		got := simd.Max8x16(&test.a, &test.b)
+		expected := referenceMax8x16(test.a, test.b)
+		got := simd.Max8x16(test.a, test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
@@ -56,8 +56,8 @@ func TestMaxU8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceMaxU8x16(&test.a, &test.b)
-		got := simd.MaxU8x16(&test.a, &test.b)
+		expected := referenceMaxU8x16(test.a, test.b)
+		got := simd.MaxU8x16(test.a, test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
@@ -87,8 +87,8 @@ func TestMin8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceMin8x16(&test.a, &test.b)
-		got := simd.Min8x16(&test.a, &test.b)
+		expected := referenceMin8x16(test.a, test.b)
+		got := simd.Min8x16(test.a, test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
@@ -118,8 +118,8 @@ func TestMinU8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceMinU8x16(&test.a, &test.b)
-		got := simd.MinU8x16(&test.a, &test.b)
+		expected := referenceMinU8x16(test.a, test.b)
+		got := simd.MinU8x16(test.a, test.b)
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
