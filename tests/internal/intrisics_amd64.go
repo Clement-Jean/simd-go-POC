@@ -1,13 +1,19 @@
 package internal
 
 /*
-#cgo CFLAGS: -msse2
+#cgo CFLAGS: -msse2 -msse3 -msse4.1
 #include <stdint.h>
 #include <immintrin.h>
+#include <smmintrin.h>   
 
-void storeu_si128(uint8_t* m, __m128i v0) { _mm_storeu_si128((__m128i*)m, v0); }
+void storeu_su128(uint8_t* m, __m128i v0) { _mm_storeu_si128((__m128i*)m, v0); }
+void storeu_si128(int8_t* m, __m128i v0) { _mm_storeu_si128((__m128i*)m, v0); }   
 
-__m128i setr_epi8(uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t g, uint8_t h, uint8_t i, uint8_t j, uint8_t k, uint8_t l, uint8_t m, uint8_t n, uint8_t o, uint8_t p) {
+__m128i setr_epu8(uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t g, uint8_t h, uint8_t i, uint8_t j, uint8_t k, uint8_t l, uint8_t m, uint8_t n, uint8_t o, uint8_t p) {
+   return _mm_setr_epi8(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+}
+
+__m128i setr_epi8(int8_t a, int8_t b, int8_t c, int8_t d, int8_t e, int8_t f, int8_t g, int8_t h, int8_t i, int8_t j, int8_t k, int8_t l, int8_t m, int8_t n, int8_t o, int8_t p) {
    return _mm_setr_epi8(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
 }
 
@@ -20,9 +26,9 @@ __m128i subs_epu8(__m128i a, __m128i b) { return _mm_subs_epu8(a, b); }
 __m128i and_si128(__m128i a, __m128i b) { return _mm_and_si128(a, b); }
 __m128i or_si128(__m128i a, __m128i b) { return _mm_or_si128(a, b); }
 __m128i xor_si128(__m128i a, __m128i b) { return _mm_xor_si128(a, b); }
-__m128i max_epi8(__m128i a, __m128i b) { return _mm_max_epu8(a, b); }
+__m128i max_epi8(__m128i a, __m128i b) { return _mm_max_epi8(a, b); }
 __m128i max_epu8(__m128i a, __m128i b) { return _mm_max_epu8(a, b); }
-__m128i min_epi8(__m128i a, __m128i b) { return _mm_min_epu8(a, b); }
+__m128i min_epi8(__m128i a, __m128i b) { return _mm_min_epi8(a, b); }
 __m128i min_epu8(__m128i a, __m128i b) { return _mm_min_epu8(a, b); }
 */
 import "C"
@@ -37,14 +43,24 @@ type Int8 = C.int8_t
 type M128I = C.__m128i
 
 // Store 128-bits (composed of 16 packed 8-bit integers) from a into memory. mem_addr does not need to be aligned on any particular boundary.
-func MmStoreuSi128(m *Uint8, v0 M128I) { C.storeu_si128(m, v0) }
+func MmStoreuSu128(m *Uint8, v0 M128I) { C.storeu_su128(m, v0) }
+
+func MmStoreuSi128(m *Int8, v0 M128I) { C.storeu_si128(m, v0) }
 
 // Set packed 8-bit integers in dst with the supplied values in reverse order.
-func MmSetrEpi8[T uint8 | int8](a [16]T) M128I {
-	return C.setr_epi8(
+func MmSetrEpu8(a [16]uint8) M128I {
+	return C.setr_epu8(
 		(Uint8)(a[0]), (Uint8)(a[1]), (Uint8)(a[2]), (Uint8)(a[3]), (Uint8)(a[4]), (Uint8)(a[5]),
 		(Uint8)(a[6]), (Uint8)(a[7]), (Uint8)(a[8]), (Uint8)(a[9]), (Uint8)(a[10]), (Uint8)(a[11]),
 		(Uint8)(a[12]), (Uint8)(a[13]), (Uint8)(a[14]), (Uint8)(a[15]),
+	)
+}
+
+func MmSetrEpi8(a [16]int8) M128I {
+	return C.setr_epi8(
+		(Int8)(a[0]), (Int8)(a[1]), (Int8)(a[2]), (Int8)(a[3]), (Int8)(a[4]), (Int8)(a[5]),
+		(Int8)(a[6]), (Int8)(a[7]), (Int8)(a[8]), (Int8)(a[9]), (Int8)(a[10]), (Int8)(a[11]),
+		(Int8)(a[12]), (Int8)(a[13]), (Int8)(a[14]), (Int8)(a[15]),
 	)
 }
 

@@ -92,7 +92,7 @@ func TestMin8x16(t *testing.T) {
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
+				t.Fatalf("expected %v, got %v\n", expected, got)
 			}
 		}
 	}
@@ -123,7 +123,7 @@ func TestMinU8x16(t *testing.T) {
 
 		for i := 0; i < len(got); i++ {
 			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
+				t.Fatalf("expected %v, got %v\n", expected, got)
 			}
 		}
 	}
