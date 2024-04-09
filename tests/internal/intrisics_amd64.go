@@ -12,6 +12,18 @@ __m128i setr_epi8(uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t
 }
 
 __m128i add_epi8(__m128i a, __m128i b) { return _mm_add_epi8(a, b); }
+__m128i adds_epi8(__m128i a, __m128i b) { return _mm_adds_epi8(a, b); }
+__m128i adds_epu8(__m128i a, __m128i b) { return _mm_adds_epu8(a, b); }
+__m128i sub_epi8(__m128i a, __m128i b) { return _mm_sub_epi8(a, b); }
+__m128i subs_epi8(__m128i a, __m128i b) { return _mm_subs_epi8(a, b); }
+__m128i subs_epu8(__m128i a, __m128i b) { return _mm_subs_epu8(a, b); }
+__m128i and_si128(__m128i a, __m128i b) { return _mm_and_si128(a, b); }
+__m128i or_si128(__m128i a, __m128i b) { return _mm_or_si128(a, b); }
+__m128i xor_si128(__m128i a, __m128i b) { return _mm_xor_si128(a, b); }
+__m128i max_epi8(__m128i a, __m128i b) { return _mm_max_epu8(a, b); }
+__m128i max_epu8(__m128i a, __m128i b) { return _mm_max_epu8(a, b); }
+__m128i min_epi8(__m128i a, __m128i b) { return _mm_min_epu8(a, b); }
+__m128i min_epu8(__m128i a, __m128i b) { return _mm_min_epu8(a, b); }
 */
 import "C"
 
@@ -40,73 +52,37 @@ func MmSetrEpi8[T uint8 | int8](a [16]T) M128I {
 func MmAddEpi8(v0, v1 M128I) M128I { return C.add_epi8(v0, v1) }
 
 // Add packed 8-bit integers in "a" and "b" using saturation, and store the results in "dst".
-//
-//go:linkname MmAddsEpi8 MmAddsEpi8
-//go:noescape
-func MmAddsEpi8(r *M128I, v0 *M128I, v1 *M128I)
+func MmAddsEpi8(v0, v1 M128I) M128I { return C.adds_epi8(v0, v1) }
 
 // Add packed unsigned 8-bit integers in "a" and "b" using saturation, and store the results in "dst".
-//
-//go:linkname MmAddsEpu8 MmAddsEpu8
-//go:noescape
-func MmAddsEpu8(r *M128I, v0 *M128I, v1 *M128I)
+func MmAddsEpu8(v0, v1 M128I) M128I { return C.adds_epu8(v0, v1) }
 
 // Subtract packed 8-bit integers in "a" and "b", and store the results in "dst".
-//
-//go:linkname MmSubEpi8 MmSubEpi8
-//go:noescape
-func MmSubEpi8(r *M128I, v0 *M128I, v1 *M128I)
+func MmSubEpi8(v0, v1 M128I) M128I { return C.sub_epi8(v0, v1) }
 
 // Subtract packed 8-bit integers in "a" and "b" using saturation, and store the results in "dst".
-//
-//go:linkname MmSubsEpi8 MmSubsEpi8
-//go:noescape
-func MmSubsEpi8(r *M128I, v0 *M128I, v1 *M128I)
+func MmSubsEpi8(v0, v1 M128I) M128I { return C.subs_epi8(v0, v1) }
 
 // Subtract packed unsigned 8-bit integers in "a" and "b" using saturation, and store the results in "dst".
-//
-//go:linkname MmSubsEpu8 MmSubsEpu8
-//go:noescape
-func MmSubsEpu8(r *M128I, v0 *M128I, v1 *M128I)
+func MmSubsEpu8(v0, v1 M128I) M128I { return C.subs_epu8(v0, v1) }
 
 // Compute the bitwise AND of 128 bits (representing integer data) in a and b, and store the result in dst.
-//
-//go:linkname MmAndSi128 MmAndSi128
-//go:noescape
-func MmAndSi128(r *M128I, v0 *M128I, v1 *M128I)
+func MmAndSi128(v0, v1 M128I) M128I { return C.and_si128(v0, v1) }
 
 // Compute the bitwise OR of 128 bits (representing integer data) in a and b, and store the result in dst.
-//
-//go:linkname MmOrSi128 MmOrSi128
-//go:noescape
-func MmOrSi128(r *M128I, v0 *M128I, v1 *M128I)
+func MmOrSi128(v0, v1 M128I) M128I { return C.or_si128(v0, v1) }
 
 // Compute the bitwise Xor of 128 bits (representing integer data) in a and b, and store the result in dst.
-//
-//go:linkname MmXorSi128 MmXorSi128
-//go:noescape
-func MmXorSi128(r *M128I, v0 *M128I, v1 *M128I)
+func MmXorSi128(v0, v1 M128I) M128I { return C.xor_si128(v0, v1) }
 
 // Compare packed signed 8-bit integers in a and b, and store packed maximum values in dst.
-//
-//go:linkname MmMaxEpi8 MmMaxEpi8
-//go:noescape
-func MmMaxEpi8(r *M128I, v0 *M128I, v1 *M128I)
+func MmMaxEpi8(v0, v1 M128I) M128I { return C.max_epi8(v0, v1) }
 
 // Compare packed unsigned 8-bit integers in a and b, and store packed maximum values in dst.
-//
-//go:linkname MmMaxEpu8 MmMaxEpu8
-//go:noescape
-func MmMaxEpu8(r *M128I, v0 *M128I, v1 *M128I)
+func MmMaxEpu8(v0, v1 M128I) M128I { return C.max_epu8(v0, v1) }
 
 // Compare packed signed 8-bit integers in a and b, and store packed minimum values in dst.
-//
-//go:linkname MmMinEpi8 MmMinEpi8
-//go:noescape
-func MmMinEpi8(r *M128I, v0 *M128I, v1 *M128I)
+func MmMinEpi8(v0, v1 M128I) M128I { return C.min_epi8(v0, v1) }
 
 // Compare packed unsigned 8-bit integers in a and b, and store packed minimum values in dst.
-//
-//go:linkname MmMinEpu8 MmMinEpu8
-//go:noescape
-func MmMinEpu8(r *M128I, v0 *M128I, v1 *M128I)
+func MmMinEpu8(v0, v1 M128I) M128I { return C.min_epu8(v0, v1) }
