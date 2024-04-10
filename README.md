@@ -17,7 +17,7 @@ pushd go && ../build.sh && popd
 ## Run
 
 ```
-go/bin/go run .
+go/bin/go run [-tags neon|sse2|sse4.1] .
 ```
 
 ## Architecture
