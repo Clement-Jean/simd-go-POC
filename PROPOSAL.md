@@ -43,7 +43,7 @@ etc.
 
 As mentionned, these build tags are optional. If not specified, we would resolve to the appropriate SIMD ISA available on the current OS and ARCH. However, I still think that these build tags are needed for deeper optimization and platform specific operations. If we know that some instruction is more performant or only available on a certain architecture, we should be able to enforce using it manually.
 
-Finally, having a build tag would let the developer choose at compile time which SIMD ISA to target and thus cross compile. We could write something similar to:
+Finally, having a the optional build tag would let the developer choose at compile time which SIMD ISA to target and thus cross compile. We could write something similar to:
 
     $ go build -simd neon
 
@@ -62,15 +62,15 @@ import (
 )
 
 func main() {
-    a := &[16]uint8{...}
-    b := &[16]uint8{...}
+    a := [16]uint8{...}
+    b := [16]uint8{...}
     c := simd.AddU8x16(a, b)
 
     fmt.Printf("%v\n", c)
 }
 ```
 
-And the `AddU8x16` gets lowered down to a `VADD` instruction after SSA lowering.
+And the `AddU8x16` gets lowered down to a `vector add` instruction after SSA lowering.
 
 There are a few things to note:
 
@@ -82,13 +82,13 @@ There are a few things to note:
 
 ## Challenges to Overcome
 
-- You might have noticed that the previous code snippet works with pointers on array. The main readon is that fixed-size arrays are not SSAable. But because we work with these pointers on arrays which are stored in general purpose registers, the performance is not great (allocations required and load of non contiguous memory) and it requires us to do the LD/ST dance for each function in the simd package.
+- Under the hood, the current POC, works with pointers on arrays. The main reason is that fixed-size arrays are not SSAable. But because we work with these pointers on arrays which are stored in general purpose registers, the performance is not great (allocations required and load of non contiguous memory) and it requires us to do the LD/ST dance for each function in the simd package.
 
 I believe we would need some kind of type aliases like the following:
 
 ```go
-type I8x16 *[16]int8
-type U8x16 *[16]uint8
+type Int8x16 *[16]int8
+type Uint8x16 *[16]uint8
 //...
 ```
 
