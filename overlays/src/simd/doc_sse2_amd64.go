@@ -1,4 +1,4 @@
-//go:build neon
+//go:build sse2
 
 package simd
 
