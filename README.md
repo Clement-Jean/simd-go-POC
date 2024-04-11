@@ -17,7 +17,7 @@ pushd go && ../build.sh && popd
 ## Run
 
 ```
-go/bin/go run [-tags neon|sse2|sse4.1] .
+go/bin/go run ./examples/{NAME}.go
 ```
 
 ## Architecture
@@ -32,27 +32,27 @@ legend:
   - :white_check_mark: implemented
   - :x: not implemented
 
-| Intrinsic            | NEON               | SSE2               | SSE4.1             |
-|----------------------|--------------------|--------------------|--------------------|
-| `Add8x16`            | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `AddU8x16`           | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `Sub8x16`            | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `SubU8x16`           | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `SaturatingAdd8x16`  | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `SaturatingAddU8x16` | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `SaturatingSub8x16`  | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `SaturatingSubU8x16` | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `And8x16`            | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `AndU8x16`           | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `Or8x16`             | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `OrU8x16`            | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `Xor8x16`            | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `Xor8x16`            | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `Max8x16`            | :white_check_mark: | :no_entry_sign:    | :white_check_mark: |
-| `MaxU8x16`           | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `Min8x16`            | :white_check_mark: | :no_entry_sign:    | :white_check_mark: |
-| `MinU8x16`           | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `ReduceMax8x16`      | :white_check_mark: | :no_entry_sign:    | :no_entry_sign:    |
-| `ReduceMaxU8x16`     | :white_check_mark: | :no_entry_sign:    | :no_entry_sign:    |
-| `ReduceMin8x16`      | :white_check_mark: | :no_entry_sign:    | :no_entry_sign:    |
-| `ReduceMinU8x16`     | :white_check_mark: | :no_entry_sign:    | :no_entry_sign:    |
+| Intrinsic            | NEON               | SSE2                        |
+|----------------------|--------------------|-----------------------------|
+| `Add8x16`            | :white_check_mark: | :white_check_mark:          |
+| `AddU8x16`           | :white_check_mark: | :white_check_mark:          |
+| `Sub8x16`            | :white_check_mark: | :white_check_mark:          |
+| `SubU8x16`           | :white_check_mark: | :white_check_mark:          |
+| `SaturatingAdd8x16`  | :white_check_mark: | :white_check_mark:          |
+| `SaturatingAddU8x16` | :white_check_mark: | :white_check_mark:          |
+| `SaturatingSub8x16`  | :white_check_mark: | :white_check_mark:          |
+| `SaturatingSubU8x16` | :white_check_mark: | :white_check_mark:          |
+| `And8x16`            | :white_check_mark: | :white_check_mark:          |
+| `AndU8x16`           | :white_check_mark: | :white_check_mark:          |
+| `Or8x16`             | :white_check_mark: | :white_check_mark:          |
+| `OrU8x16`            | :white_check_mark: | :white_check_mark:          |
+| `Xor8x16`            | :white_check_mark: | :white_check_mark:          |
+| `Xor8x16`            | :white_check_mark: | :white_check_mark:          |
+| `Max8x16`            | :white_check_mark: | :white_check_mark: (SSE4.1) |
+| `MaxU8x16`           | :white_check_mark: | :white_check_mark:          |
+| `Min8x16`            | :white_check_mark: | :white_check_mark: (SSE4.1) |
+| `MinU8x16`           | :white_check_mark: | :white_check_mark:          |
+| `ReduceMax8x16`      | :white_check_mark: | :no_entry_sign:             |
+| `ReduceMaxU8x16`     | :white_check_mark: | :no_entry_sign:             |
+| `ReduceMin8x16`      | :white_check_mark: | :no_entry_sign:             |
+| `ReduceMinU8x16`     | :white_check_mark: | :no_entry_sign:             |
