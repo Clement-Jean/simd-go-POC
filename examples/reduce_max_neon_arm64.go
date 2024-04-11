@@ -1,6 +1,8 @@
 package main
 
 // ReduceMaxU8x16 is only available in ARM64 NEON
+// As such, this file will only compile with the
+// `go build -flags neon ...` command
 
 import (
 	"fmt"
