@@ -17,7 +17,7 @@ pushd go && ../build.sh && popd
 ## Run
 
 ```
-go/bin/go run .
+go/bin/go run ./examples/{NAME}.go
 ```
 
 ## Architecture
