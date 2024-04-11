@@ -3,8 +3,9 @@
 package main
 
 // You can force the use of a certain ISA by using build tags
-// For example, this file will generate SSE2 asm and will only
-// compile with the `go build -tags sse2 ...` command
+// For example, this file will generate SSE2 asm, disable access
+// to other available ISA, and will only compile with the
+// `go build -tags sse2 ...` command
 
 import (
 	"fmt"

@@ -1,6 +1,8 @@
 package main
 
 // Max8x16 is available only starting from SSE4.1
+// As such, this file will only compile with the
+// `go build -flags sse4.1 ...` command
 
 import (
 	"fmt"
