@@ -51,3 +51,16 @@ func ReduceMinU8x16(a [16]uint8) uint8 {
 func ReduceMin8x16(a [16]int8) int8 {
 	return reduceMin8x16(&a)
 }
+
+func extract8x16(out, a, b *[16]int8, idx uint)
+func extractU8x16(out, a, b *[16]uint8, idx uint)
+
+func Extract8x16(a, b [16]int8, idx uint) (out [16]int8) {
+	extract8x16(&out, &a, &b, idx)
+	return out
+}
+
+func ExtractU8x16(a, b [16]uint8, idx uint) (out [16]uint8) {
+	extractU8x16(&out, &a, &b, idx)
+	return out
+}

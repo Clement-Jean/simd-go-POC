@@ -25,3 +25,9 @@ TEXT ·reduceMinU8x16(SB),NOSPLIT,$0
 
 TEXT ·reduceMin8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·ReduceMin8x16(SB)
+
+TEXT ·extract8x16(SB),NOSPLIT,$0
+	JMP runtime∕internal∕simd·Extract8x16(SB)
+
+TEXT ·extractU8x16(SB),NOSPLIT,$0
+	JMP runtime∕internal∕simd·ExtractU8x16(SB)
