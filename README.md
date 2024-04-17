@@ -55,4 +55,8 @@ legend:
 | `ReduceMax8x16`      | :white_check_mark: | :no_entry_sign:    | :no_entry_sign:    |
 | `ReduceMaxU8x16`     | :white_check_mark: | :no_entry_sign:    | :no_entry_sign:    |
 | `ReduceMin8x16`      | :white_check_mark: | :no_entry_sign:    | :no_entry_sign:    |
-| `ReduceMinU8x16`     | :white_check_mark: | :no_entry_sign:    | :no_entry_sign:    |
+| `ReduceMinU8x16`     | :white_check_mark: | :x:                | :x:                |
+| `ExtractU8x16`       | :white_check_mark: | :x:                | :x:                |
+| `Extract8x16`        | :white_check_mark: | :x:                | :x:                |
+| `LookupU8x16`        | :white_check_mark: | :x:                | :x:                |
+| `Lookup8x16`         | :white_check_mark: | :x:                | :x:                |
