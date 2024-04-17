@@ -31,3 +31,9 @@ TEXT ·extract8x16(SB),NOSPLIT,$0
 
 TEXT ·extractU8x16(SB),NOSPLIT,$0
 	JMP runtime∕internal∕simd·ExtractU8x16(SB)
+
+TEXT ·lookup8x16(SB),NOSPLIT,$0
+	JMP runtime∕internal∕simd·Lookup8x16(SB)
+
+TEXT ·lookupU8x16(SB),NOSPLIT,$0
+	JMP runtime∕internal∕simd·LookupU8x16(SB)
