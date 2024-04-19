@@ -13,7 +13,7 @@ USAGE
 }
 
 SKIP_UPDATE=false
-PATCH="../patches/*.diff"
+PATCHES=()
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -22,7 +22,7 @@ while [ "$1" != "" ]; do
 			;;
 		-p | --patch)
 			shift
-			PATCH=$1
+			PATCHES+=($1)
 			;;
 		-h | --help)
 			usage
@@ -48,9 +48,13 @@ fi
 git checkout -f "$RELEASE_BRANCH"
 git reset --hard origin/"$RELEASE_BRANCH"
 
-
 # Patch Go
-git apply --ignore-space-change --ignore-whitespace --3way "$PATCH"
+if [ ${#PATCHES[@]} -eq 0 ]; then
+	git apply --ignore-space-change --ignore-whitespace --3way ../patches/*.diff
+else
+	git apply --ignore-space-change --ignore-whitespace --3way ${PATCHES[@]}
+fi
+
 cp -p -P -v -R ../overlays/* ./
 
 # Build Go
