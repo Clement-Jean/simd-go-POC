@@ -1,0 +1,1002 @@
+diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
+index c794d6ffd9..76ba447d0f 100644
+--- a/src/cmd/compile/internal/ssagen/ssa.go
++++ b/src/cmd/compile/internal/ssagen/ssa.go
+@@ -4287,6 +4287,126 @@ func InitTables() {
+ 	addF("runtime/internal/sys", "PrefetchStreamed", makePrefetchFunc(ssa.OpPrefetchCacheStreamed),
+ 		sys.AMD64, sys.ARM64, sys.PPC64)
+ 
++	/******** runtime/internal/simd ********/
++	addF("runtime/internal/simd", "Add8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdAdd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "SaturatingAdd8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdSaturatingAdd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "SaturatingAddU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdSaturatingAddU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "Sub8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdSub8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "SaturatingSub8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdSaturatingSub8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "SaturatingSubU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdSaturatingSubU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "And8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdAnd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "Or8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdOr8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "Xor8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdXor8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "Max8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdMax8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "MaxU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdMaxU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "Min8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdMin8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "MinU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdMinU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "ReduceMax8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			v := s.newValue2(ssa.OpSimdReduceMax8x16, types.NewTuple(types.Types[types.TINT8], types.TypeMem), args[0], s.mem())
++			s.vars[memVar] = s.newValue1(ssa.OpSelect1, types.TypeMem, v)
++			return s.newValue1(ssa.OpSelect0, types.Types[types.TINT8], v)
++		},
++		sys.ARM64)
++	addF("runtime/internal/simd", "ReduceMaxU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			v := s.newValue2(ssa.OpSimdReduceMaxU8x16, types.NewTuple(types.Types[types.TUINT8], types.TypeMem), args[0], s.mem())
++			s.vars[memVar] = s.newValue1(ssa.OpSelect1, types.TypeMem, v)
++			return s.newValue1(ssa.OpSelect0, types.Types[types.TUINT8], v)
++		},
++		sys.ARM64)
++	addF("runtime/internal/simd", "ReduceMin8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			v := s.newValue2(ssa.OpSimdReduceMin8x16, types.NewTuple(types.Types[types.TINT8], types.TypeMem), args[0], s.mem())
++			s.vars[memVar] = s.newValue1(ssa.OpSelect1, types.TypeMem, v)
++			return s.newValue1(ssa.OpSelect0, types.Types[types.TINT8], v)
++		},
++		sys.ARM64)
++	addF("runtime/internal/simd", "ReduceMinU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			v := s.newValue2(ssa.OpSimdReduceMinU8x16, types.NewTuple(types.Types[types.TUINT8], types.TypeMem), args[0], s.mem())
++			s.vars[memVar] = s.newValue1(ssa.OpSelect1, types.TypeMem, v)
++			return s.newValue1(ssa.OpSelect0, types.Types[types.TUINT8], v)
++		},
++		sys.ARM64)
++	addF("runtime/internal/simd", "ExtractU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4I(ssa.OpSimdExtractU8x16, types.TypeMem, args[3].AuxInt, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.ARM64)
++	addF("runtime/internal/simd", "LookupU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdLookupU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.ARM64)
++
+ 	/******** runtime/internal/atomic ********/
+ 	addF("runtime/internal/atomic", "Load",
+ 		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+@@ -4386,7 +4506,6 @@ func InitTables() {
+ 	type atomicOpEmitter func(s *state, n *ir.CallExpr, args []*ssa.Value, op ssa.Op, typ types.Kind)
+ 
+ 	makeAtomicGuardedIntrinsicARM64 := func(op0, op1 ssa.Op, typ, rtyp types.Kind, emit atomicOpEmitter) intrinsicBuilder {
+-
+ 		return func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+ 			// Target Atomic feature is identified by dynamic detection
+ 			addr := s.entryNewValue1A(ssa.OpAddr, types.Types[types.TBOOL].PtrTo(), ir.Syms.ARM64HasATOMICS, s.sb)
+@@ -5015,6 +5134,34 @@ func InitTables() {
+ 	alias("runtime/internal/sys", "Len64", "math/bits", "Len64", all...)
+ 	alias("runtime/internal/sys", "OnesCount64", "math/bits", "OnesCount64", all...)
+ 
++	/******** simd ********/
++	alias("simd", "addU8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "add8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "saturatingAddU8x16", "runtime/internal/simd", "SaturatingAddU8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "saturatingAdd8x16", "runtime/internal/simd", "SaturatingAdd8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "subU8x16", "runtime/internal/simd", "Sub8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "sub8x16", "runtime/internal/simd", "Sub8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "saturatingSubU8x16", "runtime/internal/simd", "SaturatingSubU8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "saturatingSub8x16", "runtime/internal/simd", "SaturatingSub8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "andU8x16", "runtime/internal/simd", "And8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "and8x16", "runtime/internal/simd", "And8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "orU8x16", "runtime/internal/simd", "Or8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "or8x16", "runtime/internal/simd", "Or8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "xorU8x16", "runtime/internal/simd", "Xor8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "xor8x16", "runtime/internal/simd", "Xor8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "maxU8x16", "runtime/internal/simd", "MaxU8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "max8x16", "runtime/internal/simd", "Max8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "minU8x16", "runtime/internal/simd", "MinU8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "min8x16", "runtime/internal/simd", "Min8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "reduceMaxU8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
++	alias("simd", "reduceMax8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
++	alias("simd", "reduceMinU8x16", "runtime/internal/simd", "ReduceMinU8x16", sys.ArchARM64)
++	alias("simd", "reduceMin8x16", "runtime/internal/simd", "ReduceMin8x16", sys.ArchARM64)
++	alias("simd", "extract8x16", "runtime/internal/simd", "ExtractU8x16", sys.ArchARM64)
++	alias("simd", "extractU8x16", "runtime/internal/simd", "ExtractU8x16", sys.ArchARM64)
++	alias("simd", "lookup8x16", "runtime/internal/simd", "LookupU8x16", sys.ArchARM64)
++	alias("simd", "lookupU8x16", "runtime/internal/simd", "LookupU8x16", sys.ArchARM64)
++
+ 	/******** sync/atomic ********/
+ 
+ 	// Note: these are disabled by flag_race in findIntrinsic below.
+diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
+index c552832520..4eb207416b 100644
+--- a/src/cmd/compile/internal/ssa/opGen.go
++++ b/src/cmd/compile/internal/ssa/opGen.go
+@@ -1052,6 +1052,19 @@ const (
+ 	OpAMD64LoweredPanicBoundsA
+ 	OpAMD64LoweredPanicBoundsB
+ 	OpAMD64LoweredPanicBoundsC
++	OpAMD64LoweredSimdAdd8x16
++	OpAMD64LoweredSimdSaturatingAddU8x16
++	OpAMD64LoweredSimdSaturatingAdd8x16
++	OpAMD64LoweredSimdSub8x16
++	OpAMD64LoweredSimdSaturatingSubU8x16
++	OpAMD64LoweredSimdSaturatingSub8x16
++	OpAMD64LoweredSimdAnd8x16
++	OpAMD64LoweredSimdOr8x16
++	OpAMD64LoweredSimdXor8x16
++	OpAMD64LoweredSimdMax8x16
++	OpAMD64LoweredSimdMaxU8x16
++	OpAMD64LoweredSimdMin8x16
++	OpAMD64LoweredSimdMinU8x16
+ 	OpAMD64FlagEQ
+ 	OpAMD64FlagLT_ULT
+ 	OpAMD64FlagLT_UGT
+@@ -1704,6 +1717,25 @@ const (
+ 	OpARM64STLRB
+ 	OpARM64STLR
+ 	OpARM64STLRW
++	OpARM64LoweredSimdAdd8x16
++	OpARM64LoweredSimdSaturatingAddU8x16
++	OpARM64LoweredSimdSaturatingAdd8x16
++	OpARM64LoweredSimdSub8x16
++	OpARM64LoweredSimdSaturatingSubU8x16
++	OpARM64LoweredSimdSaturatingSub8x16
++	OpARM64LoweredSimdAnd8x16
++	OpARM64LoweredSimdOr8x16
++	OpARM64LoweredSimdXor8x16
++	OpARM64LoweredSimdMax8x16
++	OpARM64LoweredSimdMaxU8x16
++	OpARM64LoweredSimdMin8x16
++	OpARM64LoweredSimdMinU8x16
++	OpARM64LoweredSimdReduceMax8x16
++	OpARM64LoweredSimdReduceMaxU8x16
++	OpARM64LoweredSimdReduceMin8x16
++	OpARM64LoweredSimdReduceMinU8x16
++	OpARM64LoweredSimdExtractU8x16
++	OpARM64LoweredSimdLookupU8x16
+ 	OpARM64LoweredAtomicExchange64
+ 	OpARM64LoweredAtomicExchange32
+ 	OpARM64LoweredAtomicExchange64Variant
+@@ -3189,6 +3221,30 @@ const (
+ 	OpSelectN
+ 	OpSelectNAddr
+ 	OpMakeResult
++	OpSimdAddU8x16
++	OpSimdAdd8x16
++	OpSimdSaturatingAddU8x16
++	OpSimdSaturatingAdd8x16
++	OpSimdSubU8x16
++	OpSimdSub8x16
++	OpSimdSaturatingSubU8x16
++	OpSimdSaturatingSub8x16
++	OpSimdAndU8x16
++	OpSimdAnd8x16
++	OpSimdOrU8x16
++	OpSimdOr8x16
++	OpSimdXorU8x16
++	OpSimdXor8x16
++	OpSimdMax8x16
++	OpSimdMaxU8x16
++	OpSimdMin8x16
++	OpSimdMinU8x16
++	OpSimdReduceMax8x16
++	OpSimdReduceMaxU8x16
++	OpSimdReduceMin8x16
++	OpSimdReduceMinU8x16
++	OpSimdExtractU8x16
++	OpSimdLookupU8x16
+ 	OpAtomicLoad8
+ 	OpAtomicLoad32
+ 	OpAtomicLoad64
+@@ -13843,6 +13899,175 @@ var opcodeTable = [...]opInfo{
+ 			},
+ 		},
+ 	},
++	{
++		name:           "LoweredSimdAdd8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdSaturatingAddU8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdSaturatingAdd8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdSub8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdSaturatingSubU8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdSaturatingSub8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdAnd8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdOr8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdXor8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdMax8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdMaxU8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdMin8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdMinU8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
+ 	{
+ 		name:   "FlagEQ",
+ 		argLen: 0,
+@@ -22771,6 +22996,251 @@ var opcodeTable = [...]opInfo{
+ 			},
+ 		},
+ 	},
++	{
++		name:           "LoweredSimdAdd8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdSaturatingAddU8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdSaturatingAdd8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdSub8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdSaturatingSubU8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdSaturatingSub8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdAnd8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdOr8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdXor8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdMax8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdMaxU8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdMin8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdMinU8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdReduceMax8x16",
++		argLen:         2,
++		faultOnNilArg0: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++			outputs: []outputInfo{
++				{0, 670826495}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 R30
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdReduceMaxU8x16",
++		argLen:         2,
++		faultOnNilArg0: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++			outputs: []outputInfo{
++				{0, 670826495}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 R30
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdReduceMin8x16",
++		argLen:         2,
++		faultOnNilArg0: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++			outputs: []outputInfo{
++				{0, 670826495}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 R30
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdReduceMinU8x16",
++		argLen:         2,
++		faultOnNilArg0: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++			outputs: []outputInfo{
++				{0, 670826495}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 R30
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdExtractU8x16",
++		argLen:         5,
++		faultOnNilArg0: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
++	{
++		name:           "LoweredSimdLookupU8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
++				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
++			},
++		},
++	},
+ 	{
+ 		name:            "LoweredAtomicExchange64",
+ 		argLen:          3,
+@@ -40269,6 +40739,144 @@ var opcodeTable = [...]opInfo{
+ 		argLen:  -1,
+ 		generic: true,
+ 	},
++	{
++		name:           "SimdAddU8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdAdd8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdSaturatingAddU8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdSaturatingAdd8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdSubU8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdSub8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdSaturatingSubU8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdSaturatingSub8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdAndU8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdAnd8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdOrU8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdOr8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdXorU8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdXor8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdMax8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdMaxU8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdMin8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdMinU8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:    "SimdReduceMax8x16",
++		argLen:  2,
++		generic: true,
++	},
++	{
++		name:    "SimdReduceMaxU8x16",
++		argLen:  2,
++		generic: true,
++	},
++	{
++		name:    "SimdReduceMin8x16",
++		argLen:  2,
++		generic: true,
++	},
++	{
++		name:    "SimdReduceMinU8x16",
++		argLen:  2,
++		generic: true,
++	},
++	{
++		name:    "SimdExtractU8x16",
++		argLen:  5,
++		generic: true,
++	},
++	{
++		name:    "SimdLookupU8x16",
++		argLen:  4,
++		generic: true,
++	},
+ 	{
+ 		name:    "AtomicLoad8",
+ 		argLen:  2,
+diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
+index c794d6ffd9..76ba447d0f 100644
+--- a/src/cmd/compile/internal/ssagen/ssa.go
++++ b/src/cmd/compile/internal/ssagen/ssa.go
+@@ -4287,6 +4287,126 @@ func InitTables() {
+ 	addF("runtime/internal/sys", "PrefetchStreamed", makePrefetchFunc(ssa.OpPrefetchCacheStreamed),
+ 		sys.AMD64, sys.ARM64, sys.PPC64)
+ 
++	/******** runtime/internal/simd ********/
++	addF("runtime/internal/simd", "Add8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdAdd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "SaturatingAdd8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdSaturatingAdd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "SaturatingAddU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdSaturatingAddU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "Sub8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdSub8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "SaturatingSub8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdSaturatingSub8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "SaturatingSubU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdSaturatingSubU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "And8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdAnd8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "Or8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdOr8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "Xor8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdXor8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "Max8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdMax8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "MaxU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdMaxU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "Min8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdMin8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "MinU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdMinU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "ReduceMax8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			v := s.newValue2(ssa.OpSimdReduceMax8x16, types.NewTuple(types.Types[types.TINT8], types.TypeMem), args[0], s.mem())
++			s.vars[memVar] = s.newValue1(ssa.OpSelect1, types.TypeMem, v)
++			return s.newValue1(ssa.OpSelect0, types.Types[types.TINT8], v)
++		},
++		sys.ARM64)
++	addF("runtime/internal/simd", "ReduceMaxU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			v := s.newValue2(ssa.OpSimdReduceMaxU8x16, types.NewTuple(types.Types[types.TUINT8], types.TypeMem), args[0], s.mem())
++			s.vars[memVar] = s.newValue1(ssa.OpSelect1, types.TypeMem, v)
++			return s.newValue1(ssa.OpSelect0, types.Types[types.TUINT8], v)
++		},
++		sys.ARM64)
++	addF("runtime/internal/simd", "ReduceMin8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			v := s.newValue2(ssa.OpSimdReduceMin8x16, types.NewTuple(types.Types[types.TINT8], types.TypeMem), args[0], s.mem())
++			s.vars[memVar] = s.newValue1(ssa.OpSelect1, types.TypeMem, v)
++			return s.newValue1(ssa.OpSelect0, types.Types[types.TINT8], v)
++		},
++		sys.ARM64)
++	addF("runtime/internal/simd", "ReduceMinU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			v := s.newValue2(ssa.OpSimdReduceMinU8x16, types.NewTuple(types.Types[types.TUINT8], types.TypeMem), args[0], s.mem())
++			s.vars[memVar] = s.newValue1(ssa.OpSelect1, types.TypeMem, v)
++			return s.newValue1(ssa.OpSelect0, types.Types[types.TUINT8], v)
++		},
++		sys.ARM64)
++	addF("runtime/internal/simd", "ExtractU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4I(ssa.OpSimdExtractU8x16, types.TypeMem, args[3].AuxInt, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.ARM64)
++	addF("runtime/internal/simd", "LookupU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdLookupU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.ARM64)
++
+ 	/******** runtime/internal/atomic ********/
+ 	addF("runtime/internal/atomic", "Load",
+ 		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+@@ -4386,7 +4506,6 @@ func InitTables() {
+ 	type atomicOpEmitter func(s *state, n *ir.CallExpr, args []*ssa.Value, op ssa.Op, typ types.Kind)
+ 
+ 	makeAtomicGuardedIntrinsicARM64 := func(op0, op1 ssa.Op, typ, rtyp types.Kind, emit atomicOpEmitter) intrinsicBuilder {
+-
+ 		return func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
+ 			// Target Atomic feature is identified by dynamic detection
+ 			addr := s.entryNewValue1A(ssa.OpAddr, types.Types[types.TBOOL].PtrTo(), ir.Syms.ARM64HasATOMICS, s.sb)
+@@ -5015,6 +5134,34 @@ func InitTables() {
+ 	alias("runtime/internal/sys", "Len64", "math/bits", "Len64", all...)
+ 	alias("runtime/internal/sys", "OnesCount64", "math/bits", "OnesCount64", all...)
+ 
++	/******** simd ********/
++	alias("simd", "addU8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "add8x16", "runtime/internal/simd", "Add8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "saturatingAddU8x16", "runtime/internal/simd", "SaturatingAddU8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "saturatingAdd8x16", "runtime/internal/simd", "SaturatingAdd8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "subU8x16", "runtime/internal/simd", "Sub8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "sub8x16", "runtime/internal/simd", "Sub8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "saturatingSubU8x16", "runtime/internal/simd", "SaturatingSubU8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "saturatingSub8x16", "runtime/internal/simd", "SaturatingSub8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "andU8x16", "runtime/internal/simd", "And8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "and8x16", "runtime/internal/simd", "And8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "orU8x16", "runtime/internal/simd", "Or8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "or8x16", "runtime/internal/simd", "Or8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "xorU8x16", "runtime/internal/simd", "Xor8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "xor8x16", "runtime/internal/simd", "Xor8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "maxU8x16", "runtime/internal/simd", "MaxU8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "max8x16", "runtime/internal/simd", "Max8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "minU8x16", "runtime/internal/simd", "MinU8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "min8x16", "runtime/internal/simd", "Min8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "reduceMaxU8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
++	alias("simd", "reduceMax8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
++	alias("simd", "reduceMinU8x16", "runtime/internal/simd", "ReduceMinU8x16", sys.ArchARM64)
++	alias("simd", "reduceMin8x16", "runtime/internal/simd", "ReduceMin8x16", sys.ArchARM64)
++	alias("simd", "extract8x16", "runtime/internal/simd", "ExtractU8x16", sys.ArchARM64)
++	alias("simd", "extractU8x16", "runtime/internal/simd", "ExtractU8x16", sys.ArchARM64)
++	alias("simd", "lookup8x16", "runtime/internal/simd", "LookupU8x16", sys.ArchARM64)
++	alias("simd", "lookupU8x16", "runtime/internal/simd", "LookupU8x16", sys.ArchARM64)
++
+ 	/******** sync/atomic ********/
+ 
+ 	// Note: these are disabled by flag_race in findIntrinsic below.
