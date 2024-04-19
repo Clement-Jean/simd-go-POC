@@ -65,10 +65,10 @@ func ExtractU8x16(a, b [16]uint8, idx uint) (out [16]uint8) {
 	return out
 }
 
-func lookup8x16(out, a, b *[16]int8)
+func lookup8x16(out, a *[16]int8, b *[16]uint8)
 func lookupU8x16(out, a, b *[16]uint8)
 
-func Lookup8x16(a, b [16]int8) (out [16]int8) {
+func Lookup8x16(a [16]int8, b [16]uint8) (out [16]int8) {
 	lookup8x16(&out, &a, &b)
 	return out
 }

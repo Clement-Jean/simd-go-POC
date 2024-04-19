@@ -1,22 +1,23 @@
 diff --git a/src/cmd/compile/internal/arm64/ssa.go b/src/cmd/compile/internal/arm64/ssa.go
-index 27b4e881c0..6ca992436f 100644
+index 27b4e881c0..0971227652 100644
 --- a/src/cmd/compile/internal/arm64/ssa.go
 +++ b/src/cmd/compile/internal/arm64/ssa.go
-@@ -5,6 +5,7 @@
+@@ -5,6 +5,8 @@
  package arm64
  
  import (
 +	"errors"
++	//"fmt"
  	"math"
  
  	"cmd/compile/internal/base"
-@@ -99,6 +100,28 @@ func genshift(s *ssagen.State, v *ssa.Value, as obj.As, r0, r1, r int16, typ int
+@@ -99,6 +101,85 @@ func genshift(s *ssagen.State, v *ssa.Value, as obj.As, r0, r1, r int16, typ int
  	return p
  }
  
-+// ARM64RegisterListOffset generates offset encoding according to AArch64 specification.
-+func ARM64RegisterListOffset(firstReg, regCnt int, arrangement int64) (int64, error) {
-+	offset := int64(firstReg)
++func RegisterListOffset(register, regCnt int, arrangement int64) (int64, error) {
++	offset := int64(register & 31)
++
 +	switch regCnt {
 +	case 1:
 +		offset |= 0x7 << 12
@@ -29,493 +30,277 @@ index 27b4e881c0..6ca992436f 100644
 +	default:
 +		return 0, errors.New("invalid register numbers in ARM64 register list")
 +	}
-+	offset |= arrangement
-+	// arm64 uses the 60th bit to differentiate from other archs
-+	// For more details, refer to: obj/arm64/list7.go
-+	offset |= 1 << 60
++
++	q := int64(0)
++	size := int64(0)
++
++	switch arrangement {
++	case arm64.ARNG_8B:
++		/* nothing to be done */
++	case arm64.ARNG_16B:
++		q = 1
++	case arm64.ARNG_4H:
++		size = 1
++	case arm64.ARNG_8H:
++		size = 1
++		q = 1
++	case arm64.ARNG_2S:
++		size = 2
++	case arm64.ARNG_4S:
++		size = 2
++		q = 1
++	case arm64.ARNG_1D:
++		size = 3
++	case arm64.ARNG_2D:
++		size = 3
++		q = 1
++	default:
++		return 0, errors.New("invalid arragement in ARM64")
++	}
++
++	offset |= q<<30 | size<<10
 +	return offset, nil
++}
++
++func loadStoreVector3(s *ssagen.State, r0, r1, r2 int16, op func(s *ssagen.State)) {
++	// VLD1 (R1), [V0.D2]
++	// VLD1 (R2), [V1.D2]
++	// op(s)
++	// VST1 [V0.D2], (R0)
++
++	vld1 := arm64.AVLD1
++	p := s.Prog(vld1)
++	p.From.Type = obj.TYPE_MEM
++	p.From.Reg = r1
++	p.To.Type = obj.TYPE_REGLIST
++	offset, _ := RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_2D)
++	p.To.Offset = offset
++
++	p1 := s.Prog(vld1)
++	p1.From.Type = obj.TYPE_MEM
++	p1.From.Reg = r2
++	p1.To.Type = obj.TYPE_REGLIST
++	offset, _ = RegisterListOffset(arm64.REG_V1, 1, arm64.ARNG_2D)
++	p1.To.Offset = offset
++
++	op(s)
++
++	vst1 := arm64.AVST1
++	p2 := s.Prog(vst1)
++	p2.From.Type = obj.TYPE_REGLIST
++	offset, _ = RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_2D)
++	p2.From.Offset = offset
++	p2.To.Type = obj.TYPE_MEM
++	p2.To.Reg = r0
 +}
 +
  // generate the memory operand for the indexed load/store instructions.
  // base and idx are registers.
  func genIndexedOperand(op ssa.Op, base, idx int16) obj.Addr {
-@@ -577,6 +600,713 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+@@ -577,6 +658,398 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
  		p.Reg = v.Args[0].Reg()
  		p.To.Type = obj.TYPE_REG
  		p.To.Reg = v.Reg()
 +	case ssa.OpARM64LoweredSimdAdd8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
 +		// VADD V1.B16, V0.B16, V0.B16
-+		// VST1 [V0.D2], (R0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		vadd := arm64.AVADD
-+		p2 := s.Prog(vadd)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+		p2.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			vadd := arm64.AVADD
++			p := s.Prog(vadd)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
 +
 +	case ssa.OpARM64LoweredSimdSub8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
 +		// VSUB V1.B16, V0.B16, V0.B16
-+		// VST1 [V0.D2], (R0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		vsub := arm64.AVSUB
-+		p2 := s.Prog(vsub)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+		p2.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			vsub := arm64.AVSUB
++			p := s.Prog(vsub)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
 +
 +	case ssa.OpARM64LoweredSimdSaturatingAddU8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
-+		// WORD $0x6e210c00
-+		// VST1 [V0.D2], (R0)
++		// VUQADD V1.B16, V0.B16, V0.B16
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		word := arm64.AWORD
-+		p2 := s.Prog(word)
-+		p2.To.Type = obj.TYPE_CONST
-+		p2.To.Offset = 0x6e210c00 // VQADD V1.B16, V0.B16, V0.B16
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x6e210c00
++		})
 +
 +	case ssa.OpARM64LoweredSimdSaturatingAdd8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
-+		// WORD $0x4e210c00
-+		// VST1 [V0.D2], (R0)
++		// VSQADD V1.B16, V0.B16, V0.B16
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		word := arm64.AWORD
-+		p2 := s.Prog(word)
-+		p2.To.Type = obj.TYPE_CONST
-+		p2.To.Offset = 0x4e210c00 // VQADD V1.B16, V0.B16, V0.B16
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x4e210c00
++		})
 +
 +	case ssa.OpARM64LoweredSimdSaturatingSubU8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
-+		// WORD $0x6e212c00
-+		// VST1 [V0.D2], (R0)
++		// VUQSUB V1.B16, V0.B16, V0.B16
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		word := arm64.AWORD
-+		p2 := s.Prog(word)
-+		p2.To.Type = obj.TYPE_CONST
-+		p2.To.Offset = 0x6e212c00 // VQSUB V1.B16, V0.B16, V0.B16
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x6e212c00
++		})
 +
 +	case ssa.OpARM64LoweredSimdSaturatingSub8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
-+		// WORD $0x4e212c00
-+		// VST1 [V0.D2], (R0)
++		// VSQSUB V1.B16, V0.B16, V0.B16
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		word := arm64.AWORD
-+		p2 := s.Prog(word)
-+		p2.To.Type = obj.TYPE_CONST
-+		p2.To.Offset = 0x4e212c00 // VQSUB V1.B16, V0.B16, V0.B16
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x4e212c00
++		})
 +
 +	case ssa.OpARM64LoweredSimdAnd8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
 +		// VAND V1.B16 V0.B16 V0.B16
-+		// VST1 [V0.D2], (R0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		vand := arm64.AVAND
-+		p2 := s.Prog(vand)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+		p2.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			vand := arm64.AVAND
++			p := s.Prog(vand)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
 +
 +	case ssa.OpARM64LoweredSimdOr8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
 +		// VORR V1.B16 V0.B16 V0.B16
-+		// VST1 [V0.D2], (R0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		vorr := arm64.AVORR
-+		p2 := s.Prog(vorr)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+		p2.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			vorr := arm64.AVORR
++			p := s.Prog(vorr)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
 +
 +	case ssa.OpARM64LoweredSimdXor8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
 +		// VEOR V1.B16 V0.B16 V0.B16
-+		// VST1 [V0.D2], (R0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		veor := arm64.AVEOR
-+		p2 := s.Prog(veor)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+		p2.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			veor := arm64.AVEOR
++			p := s.Prog(veor)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
 +
 +	case ssa.OpARM64LoweredSimdMax8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
-+		// VMAX V1.B16 V0.B16 V0.B16
-+		// VST1 [V0.D2], (R0)
++		// VSMAX V1.B16 V0.B16 V0.B16
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		word := arm64.AWORD
-+		p2 := s.Prog(word)
-+		p2.To.Type = obj.TYPE_CONST
-+		p2.To.Offset = 0x4e216400 // VMAX V1.B16, V0.B16, V0.B16
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p2 := s.Prog(word)
++			p2.To.Type = obj.TYPE_CONST
++			p2.To.Offset = 0x4e216400
++		})
 +
 +	case ssa.OpARM64LoweredSimdMaxU8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
-+		// VMAX V1.B16 V0.B16 V0.B16
-+		// VST1 [V0.D2], (R0)
++		// VUMAX V1.B16 V0.B16 V0.B16
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		word := arm64.AWORD
-+		p2 := s.Prog(word)
-+		p2.To.Type = obj.TYPE_CONST
-+		p2.To.Offset = 0x6e216400 // VMAX V1.B16, V0.B16, V0.B16
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x6e216400
++		})
 +
 +	case ssa.OpARM64LoweredSimdMin8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
-+		// VMIN V1.B16 V0.B16 V0.B16
-+		// VST1 [V0.D2], (R0)
++		// VSMIN V1.B16 V0.B16 V0.B16
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		word := arm64.AWORD
-+		p2 := s.Prog(word)
-+		p2.To.Type = obj.TYPE_CONST
-+		p2.To.Offset = 0x4e216c00 // VMIN V1.B16, V0.B16, V0.B16
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x4e216c00
++		})
 +
 +	case ssa.OpARM64LoweredSimdMinU8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
-+		// VMIN V1.B16 V0.B16 V0.B16
-+		// VST1 [V0.D2], (R0)
++		// VUMIN V1.B16 V0.B16 V0.B16
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		word := arm64.AWORD
-+		p2 := s.Prog(word)
-+		p2.To.Type = obj.TYPE_CONST
-+		p2.To.Offset = 0x6e216c00 // VMIN V1.B16, V0.B16, V0.B16
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x6e216c00
++		})
 +
 +	case ssa.OpARM64LoweredSimdReduceMax8x16:
 +		// VLD1 (R0), [V0.D2]
-+		// VMAX V0.B16, V1.B[0]
++		// VSMAX V0.B16, V1.B[0]
 +		// VMOV V1.B[0], R1
 +		// MOVB R1, ret+8(FP)
 +
@@ -532,7 +317,7 @@ index 27b4e881c0..6ca992436f 100644
 +		word := arm64.AWORD
 +		p1 := s.Prog(word)
 +		p1.To.Type = obj.TYPE_CONST
-+		p1.To.Offset = 0x4e30a801 // VMAXV V0.B16, V1.B[0]
++		p1.To.Offset = 0x4e30a801
 +
 +		vmov := arm64.AVMOV
 +		p2 := s.Prog(vmov)
@@ -551,7 +336,7 @@ index 27b4e881c0..6ca992436f 100644
 +
 +	case ssa.OpARM64LoweredSimdReduceMaxU8x16:
 +		// VLD1 (R0), [V0.D2]
-+		// VMAX V0.B16, V1.B[0]
++		// VUMAX V0.B16, V1.B[0]
 +		// VMOV V1.B[0], R1
 +		// MOVB R1, ret+8(FP)
 +
@@ -568,7 +353,7 @@ index 27b4e881c0..6ca992436f 100644
 +		word := arm64.AWORD
 +		p1 := s.Prog(word)
 +		p1.To.Type = obj.TYPE_CONST
-+		p1.To.Offset = 0x6e30a801 // VMAXV V0.B16, V1.B[0]
++		p1.To.Offset = 0x6e30a801
 +
 +		vmov := arm64.AVMOV
 +		p2 := s.Prog(vmov)
@@ -587,7 +372,7 @@ index 27b4e881c0..6ca992436f 100644
 +
 +	case ssa.OpARM64LoweredSimdReduceMin8x16:
 +		// VLD1 (R0), [V0.D2]
-+		// VMIN V0.B16, V1.B[0]
++		// VSMIN V0.B16, V1.B[0]
 +		// VMOV V1.B[0], R1
 +		// MOVB R1, ret+8(FP)
 +
@@ -604,7 +389,7 @@ index 27b4e881c0..6ca992436f 100644
 +		word := arm64.AWORD
 +		p1 := s.Prog(word)
 +		p1.To.Type = obj.TYPE_CONST
-+		p1.To.Offset = 0x4e31a801 // VMINV V0.B16, V1.B[0]
++		p1.To.Offset = 0x4e31a801
 +
 +		vmov := arm64.AVMOV
 +		p2 := s.Prog(vmov)
@@ -623,7 +408,7 @@ index 27b4e881c0..6ca992436f 100644
 +
 +	case ssa.OpARM64LoweredSimdReduceMinU8x16:
 +		// VLD1 (R0), [V0.D2]
-+		// VMIN V0.B16, V1.B[0]
++		// VUMIN V0.B16, V1.B[0]
 +		// VMOV V1.B[0], R1
 +		// MOVB R1, ret+8(FP)
 +
@@ -640,7 +425,7 @@ index 27b4e881c0..6ca992436f 100644
 +		word := arm64.AWORD
 +		p1 := s.Prog(word)
 +		p1.To.Type = obj.TYPE_CONST
-+		p1.To.Offset = 0x6e31a801 // VMINV V0.B16, V1.B[0]
++		p1.To.Offset = 0x6e31a801
 +
 +		vmov := arm64.AVMOV
 +		p2 := s.Prog(vmov)
@@ -658,97 +443,55 @@ index 27b4e881c0..6ca992436f 100644
 +		p3.To.Reg = out
 +
 +	case ssa.OpARM64LoweredSimdExtractU8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
-+		// VEXT R3, V1.B16, V0.B16, V0.B16
-+		// VST1 [V0.D2], (R0)
++		// VEXT $idx, V1.B16, V0.B16, V0.B16
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +		idx := v.AuxInt
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		ext := arm64.AVEXT
-+		p2 := s.Prog(ext)
-+		p2.From.Type = obj.TYPE_CONST
-+		p2.From.Offset = idx
-+		p2.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+		p2.RestArgs = []obj.AddrPos{
-+			{
-+				Addr: obj.Addr{
-+					Type: obj.TYPE_REG,
-+					Reg:  arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5),
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			ext := arm64.AVEXT
++			p := s.Prog(ext)
++			p.From.Type = obj.TYPE_CONST
++			p.From.Offset = idx
++			p.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.RestArgs = []obj.AddrPos{
++				{
++					Addr: obj.Addr{
++						Type: obj.TYPE_REG,
++						Reg:  arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5),
++					},
 +				},
-+			},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++			}
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
 +
 +	case ssa.OpARM64LoweredSimdLookupU8x16:
-+		// VLD1 (R1), [V0.D2]
-+		// VLD1 (R2), [V1.D2]
 +		// VTBL V1.B16, [V0.B16], V0.B16
-+		// VST1 [V0.D2], (R0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vld1 := arm64.AVLD1
-+		p := s.Prog(vld1)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REGLIST
-+		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		p1 := s.Prog(vld1)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REGLIST
-+		p1.To.Offset = 1&31 | arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+
-+		vtbl := arm64.AVTBL
-+		p2 := s.Prog(vtbl)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+		V0Offset, _ := ARM64RegisterListOffset((arm64.REG_V0 & 31), 1, ((arm64.ARNG_16B & 15) << 5))
-+		p2.RestArgs = []obj.AddrPos{
-+			{
-+				Addr: obj.Addr{
-+					Type:   obj.TYPE_REGLIST,
-+					Offset: V0Offset,
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			vtbl := arm64.AVTBL
++			p := s.Prog(vtbl)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			offset, _ := RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_16B)
++			p.RestArgs = []obj.AddrPos{
++				{
++					Addr: obj.Addr{
++						Type:   obj.TYPE_REGLIST,
++						Offset: offset,
++					},
 +				},
-+			},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
-+
-+		vst1 := arm64.AVST1
-+		p3 := s.Prog(vst1)
-+		p3.From.Type = obj.TYPE_REGLIST
-+		p3.From.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++			}
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
 +
  	case ssa.OpARM64LoweredAtomicExchange64,
  		ssa.OpARM64LoweredAtomicExchange32:

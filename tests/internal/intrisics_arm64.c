@@ -22,3 +22,7 @@ void VmaxvqS8(int8_t* r, int8x16_t* v0) { *r = vmaxvq_s8(*v0); }
 void VmaxvqU8(uint8_t* r, uint8x16_t* v0) { *r = vmaxvq_u8(*v0); }
 void VminvqS8(int8_t* r, int8x16_t* v0) { *r = vminvq_s8(*v0); }
 void VminvqU8(uint8_t* r, uint8x16_t* v0) { *r = vminvq_u8(*v0); }
+void VextqS8(int8x16_t* r, int8x16_t* v0, int8x16_t* v1) { *r = vextq_s8(*v0, *v1, 15); }
+void VextqU8(uint8x16_t* r, uint8x16_t* v0, uint8x16_t* v1) { *r = vextq_u8(*v0, *v1, 15); }
+void Vqtbl1qS8(int8x16_t* r, int8x16_t* v0, uint8x16_t* v1) { *r = vqtbl1q_s8(*v0, *v1); }
+void Vqtbl1qU8(uint8x16_t* r, uint8x16_t* v0, uint8x16_t* v1) { *r = vqtbl1q_u8(*v0, *v1); }

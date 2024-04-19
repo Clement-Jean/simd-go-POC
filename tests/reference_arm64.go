@@ -199,3 +199,39 @@ func referenceReduceMinU8x16(a [16]uint8) (result uint8) {
 	)
 	return result
 }
+
+func referenceExtract8x16(a, b [16]int8, n int) (result [16]int8) {
+	internal.VextqS8(
+		(*internal.Int8x16)(unsafe.Pointer(&result)),
+		(*internal.Int8x16)(unsafe.Pointer(&a)),
+		(*internal.Int8x16)(unsafe.Pointer(&b)),
+	)
+	return result
+}
+
+func referenceExtractU8x16(a, b [16]uint8, n int) (result [16]uint8) {
+	internal.VextqU8(
+		(*internal.Uint8x16)(unsafe.Pointer(&result)),
+		(*internal.Uint8x16)(unsafe.Pointer(&a)),
+		(*internal.Uint8x16)(unsafe.Pointer(&b)),
+	)
+	return result
+}
+
+func referenceLookup8x16(a [16]int8, b [16]uint8) (result [16]int8) {
+	internal.Vqtbl1qS8(
+		(*internal.Int8x16)(unsafe.Pointer(&result)),
+		(*internal.Int8x16)(unsafe.Pointer(&a)),
+		(*internal.Uint8x16)(unsafe.Pointer(&b)),
+	)
+	return result
+}
+
+func referenceLookupU8x16(a, b [16]uint8) (result [16]uint8) {
+	internal.Vqtbl1qU8(
+		(*internal.Uint8x16)(unsafe.Pointer(&result)),
+		(*internal.Uint8x16)(unsafe.Pointer(&a)),
+		(*internal.Uint8x16)(unsafe.Pointer(&b)),
+	)
+	return result
+}
