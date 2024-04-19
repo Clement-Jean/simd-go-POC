@@ -1,17 +1,16 @@
 diff --git a/src/cmd/compile/internal/arm64/ssa.go b/src/cmd/compile/internal/arm64/ssa.go
-index 27b4e881c0..0971227652 100644
+index 27b4e881c0..1fdbdc5b68 100644
 --- a/src/cmd/compile/internal/arm64/ssa.go
 +++ b/src/cmd/compile/internal/arm64/ssa.go
-@@ -5,6 +5,8 @@
+@@ -5,6 +5,7 @@
  package arm64
  
  import (
 +	"errors"
-+	//"fmt"
  	"math"
  
  	"cmd/compile/internal/base"
-@@ -99,6 +101,85 @@ func genshift(s *ssagen.State, v *ssa.Value, as obj.As, r0, r1, r int16, typ int
+@@ -99,6 +100,85 @@ func genshift(s *ssagen.State, v *ssa.Value, as obj.As, r0, r1, r int16, typ int
  	return p
  }
  
@@ -97,7 +96,7 @@ index 27b4e881c0..0971227652 100644
  // generate the memory operand for the indexed load/store instructions.
  // base and idx are registers.
  func genIndexedOperand(op ssa.Op, base, idx int16) obj.Addr {
-@@ -577,6 +658,398 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+@@ -577,6 +657,398 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
  		p.Reg = v.Args[0].Reg()
  		p.To.Type = obj.TYPE_REG
  		p.To.Reg = v.Reg()

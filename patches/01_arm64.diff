@@ -1,0 +1,691 @@
+diff --git a/src/cmd/compile/internal/arm64/ssa.go b/src/cmd/compile/internal/arm64/ssa.go
+index 27b4e881c0..1fdbdc5b68 100644
+--- a/src/cmd/compile/internal/arm64/ssa.go
++++ b/src/cmd/compile/internal/arm64/ssa.go
+@@ -5,6 +5,7 @@
+ package arm64
+ 
+ import (
++	"errors"
+ 	"math"
+ 
+ 	"cmd/compile/internal/base"
+@@ -99,6 +100,85 @@ func genshift(s *ssagen.State, v *ssa.Value, as obj.As, r0, r1, r int16, typ int
+ 	return p
+ }
+ 
++func RegisterListOffset(register, regCnt int, arrangement int64) (int64, error) {
++	offset := int64(register & 31)
++
++	switch regCnt {
++	case 1:
++		offset |= 0x7 << 12
++	case 2:
++		offset |= 0xa << 12
++	case 3:
++		offset |= 0x6 << 12
++	case 4:
++		offset |= 0x2 << 12
++	default:
++		return 0, errors.New("invalid register numbers in ARM64 register list")
++	}
++
++	q := int64(0)
++	size := int64(0)
++
++	switch arrangement {
++	case arm64.ARNG_8B:
++		/* nothing to be done */
++	case arm64.ARNG_16B:
++		q = 1
++	case arm64.ARNG_4H:
++		size = 1
++	case arm64.ARNG_8H:
++		size = 1
++		q = 1
++	case arm64.ARNG_2S:
++		size = 2
++	case arm64.ARNG_4S:
++		size = 2
++		q = 1
++	case arm64.ARNG_1D:
++		size = 3
++	case arm64.ARNG_2D:
++		size = 3
++		q = 1
++	default:
++		return 0, errors.New("invalid arragement in ARM64")
++	}
++
++	offset |= q<<30 | size<<10
++	return offset, nil
++}
++
++func loadStoreVector3(s *ssagen.State, r0, r1, r2 int16, op func(s *ssagen.State)) {
++	// VLD1 (R1), [V0.D2]
++	// VLD1 (R2), [V1.D2]
++	// op(s)
++	// VST1 [V0.D2], (R0)
++
++	vld1 := arm64.AVLD1
++	p := s.Prog(vld1)
++	p.From.Type = obj.TYPE_MEM
++	p.From.Reg = r1
++	p.To.Type = obj.TYPE_REGLIST
++	offset, _ := RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_2D)
++	p.To.Offset = offset
++
++	p1 := s.Prog(vld1)
++	p1.From.Type = obj.TYPE_MEM
++	p1.From.Reg = r2
++	p1.To.Type = obj.TYPE_REGLIST
++	offset, _ = RegisterListOffset(arm64.REG_V1, 1, arm64.ARNG_2D)
++	p1.To.Offset = offset
++
++	op(s)
++
++	vst1 := arm64.AVST1
++	p2 := s.Prog(vst1)
++	p2.From.Type = obj.TYPE_REGLIST
++	offset, _ = RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_2D)
++	p2.From.Offset = offset
++	p2.To.Type = obj.TYPE_MEM
++	p2.To.Reg = r0
++}
++
+ // generate the memory operand for the indexed load/store instructions.
+ // base and idx are registers.
+ func genIndexedOperand(op ssa.Op, base, idx int16) obj.Addr {
+@@ -577,6 +657,398 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+ 		p.Reg = v.Args[0].Reg()
+ 		p.To.Type = obj.TYPE_REG
+ 		p.To.Reg = v.Reg()
++	case ssa.OpARM64LoweredSimdAdd8x16:
++		// VADD V1.B16, V0.B16, V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			vadd := arm64.AVADD
++			p := s.Prog(vadd)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
++
++	case ssa.OpARM64LoweredSimdSub8x16:
++		// VSUB V1.B16, V0.B16, V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			vsub := arm64.AVSUB
++			p := s.Prog(vsub)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
++
++	case ssa.OpARM64LoweredSimdSaturatingAddU8x16:
++		// VUQADD V1.B16, V0.B16, V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x6e210c00
++		})
++
++	case ssa.OpARM64LoweredSimdSaturatingAdd8x16:
++		// VSQADD V1.B16, V0.B16, V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x4e210c00
++		})
++
++	case ssa.OpARM64LoweredSimdSaturatingSubU8x16:
++		// VUQSUB V1.B16, V0.B16, V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x6e212c00
++		})
++
++	case ssa.OpARM64LoweredSimdSaturatingSub8x16:
++		// VSQSUB V1.B16, V0.B16, V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x4e212c00
++		})
++
++	case ssa.OpARM64LoweredSimdAnd8x16:
++		// VAND V1.B16 V0.B16 V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			vand := arm64.AVAND
++			p := s.Prog(vand)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
++
++	case ssa.OpARM64LoweredSimdOr8x16:
++		// VORR V1.B16 V0.B16 V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			vorr := arm64.AVORR
++			p := s.Prog(vorr)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
++
++	case ssa.OpARM64LoweredSimdXor8x16:
++		// VEOR V1.B16 V0.B16 V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			veor := arm64.AVEOR
++			p := s.Prog(veor)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
++
++	case ssa.OpARM64LoweredSimdMax8x16:
++		// VSMAX V1.B16 V0.B16 V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p2 := s.Prog(word)
++			p2.To.Type = obj.TYPE_CONST
++			p2.To.Offset = 0x4e216400
++		})
++
++	case ssa.OpARM64LoweredSimdMaxU8x16:
++		// VUMAX V1.B16 V0.B16 V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x6e216400
++		})
++
++	case ssa.OpARM64LoweredSimdMin8x16:
++		// VSMIN V1.B16 V0.B16 V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x4e216c00
++		})
++
++	case ssa.OpARM64LoweredSimdMinU8x16:
++		// VUMIN V1.B16 V0.B16 V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			word := arm64.AWORD
++			p := s.Prog(word)
++			p.To.Type = obj.TYPE_CONST
++			p.To.Offset = 0x6e216c00
++		})
++
++	case ssa.OpARM64LoweredSimdReduceMax8x16:
++		// VLD1 (R0), [V0.D2]
++		// VSMAX V0.B16, V1.B[0]
++		// VMOV V1.B[0], R1
++		// MOVB R1, ret+8(FP)
++
++		r0 := v.Args[0].Reg()
++		out := v.Reg0()
++
++		vld1 := arm64.AVLD1
++		p := s.Prog(vld1)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r0
++		p.To.Type = obj.TYPE_REGLIST
++		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
++
++		word := arm64.AWORD
++		p1 := s.Prog(word)
++		p1.To.Type = obj.TYPE_CONST
++		p1.To.Offset = 0x4e30a801
++
++		vmov := arm64.AVMOV
++		p2 := s.Prog(vmov)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = arm64.REG_ELEM + (arm64.REG_V1 & 31) + ((arm64.ARNG_B & 15) << 5)
++		p2.From.Index = 0
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = arm64.REG_R1
++
++		movb := arm64.AMOVB
++		p3 := s.Prog(movb)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = arm64.REG_R1
++		p3.To.Type = obj.TYPE_REG
++		p3.To.Reg = out
++
++	case ssa.OpARM64LoweredSimdReduceMaxU8x16:
++		// VLD1 (R0), [V0.D2]
++		// VUMAX V0.B16, V1.B[0]
++		// VMOV V1.B[0], R1
++		// MOVB R1, ret+8(FP)
++
++		r0 := v.Args[0].Reg()
++		out := v.Reg0()
++
++		vld1 := arm64.AVLD1
++		p := s.Prog(vld1)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r0
++		p.To.Type = obj.TYPE_REGLIST
++		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
++
++		word := arm64.AWORD
++		p1 := s.Prog(word)
++		p1.To.Type = obj.TYPE_CONST
++		p1.To.Offset = 0x6e30a801
++
++		vmov := arm64.AVMOV
++		p2 := s.Prog(vmov)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = arm64.REG_ELEM + (arm64.REG_V1 & 31) + ((arm64.ARNG_B & 15) << 5)
++		p2.From.Index = 0
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = arm64.REG_R1
++
++		movb := arm64.AMOVB
++		p3 := s.Prog(movb)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = arm64.REG_R1
++		p3.To.Type = obj.TYPE_REG
++		p3.To.Reg = out
++
++	case ssa.OpARM64LoweredSimdReduceMin8x16:
++		// VLD1 (R0), [V0.D2]
++		// VSMIN V0.B16, V1.B[0]
++		// VMOV V1.B[0], R1
++		// MOVB R1, ret+8(FP)
++
++		r0 := v.Args[0].Reg()
++		out := v.Reg0()
++
++		vld1 := arm64.AVLD1
++		p := s.Prog(vld1)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r0
++		p.To.Type = obj.TYPE_REGLIST
++		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
++
++		word := arm64.AWORD
++		p1 := s.Prog(word)
++		p1.To.Type = obj.TYPE_CONST
++		p1.To.Offset = 0x4e31a801
++
++		vmov := arm64.AVMOV
++		p2 := s.Prog(vmov)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = arm64.REG_ELEM + (arm64.REG_V1 & 31) + ((arm64.ARNG_B & 15) << 5)
++		p2.From.Index = 0
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = arm64.REG_R1
++
++		movb := arm64.AMOVB
++		p3 := s.Prog(movb)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = arm64.REG_R1
++		p3.To.Type = obj.TYPE_REG
++		p3.To.Reg = out
++
++	case ssa.OpARM64LoweredSimdReduceMinU8x16:
++		// VLD1 (R0), [V0.D2]
++		// VUMIN V0.B16, V1.B[0]
++		// VMOV V1.B[0], R1
++		// MOVB R1, ret+8(FP)
++
++		r0 := v.Args[0].Reg()
++		out := v.Reg0()
++
++		vld1 := arm64.AVLD1
++		p := s.Prog(vld1)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r0
++		p.To.Type = obj.TYPE_REGLIST
++		p.To.Offset = /*0&31 |*/ arm64.ARNG_2D<<12 | 1<<30 | 3<<10 | 1<<60
++
++		word := arm64.AWORD
++		p1 := s.Prog(word)
++		p1.To.Type = obj.TYPE_CONST
++		p1.To.Offset = 0x6e31a801
++
++		vmov := arm64.AVMOV
++		p2 := s.Prog(vmov)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = arm64.REG_ELEM + (arm64.REG_V1 & 31) + ((arm64.ARNG_B & 15) << 5)
++		p2.From.Index = 0
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = arm64.REG_R1
++
++		movb := arm64.AMOVB
++		p3 := s.Prog(movb)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = arm64.REG_R1
++		p3.To.Type = obj.TYPE_REG
++		p3.To.Reg = out
++
++	case ssa.OpARM64LoweredSimdExtractU8x16:
++		// VEXT $idx, V1.B16, V0.B16, V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++		idx := v.AuxInt
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			ext := arm64.AVEXT
++			p := s.Prog(ext)
++			p.From.Type = obj.TYPE_CONST
++			p.From.Offset = idx
++			p.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			p.RestArgs = []obj.AddrPos{
++				{
++					Addr: obj.Addr{
++						Type: obj.TYPE_REG,
++						Reg:  arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5),
++					},
++				},
++			}
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
++
++	case ssa.OpARM64LoweredSimdLookupU8x16:
++		// VTBL V1.B16, [V0.B16], V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			vtbl := arm64.AVTBL
++			p := s.Prog(vtbl)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = arm64.REG_ARNG + (arm64.REG_V1 & 31) + ((arm64.ARNG_16B & 15) << 5)
++			offset, _ := RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_16B)
++			p.RestArgs = []obj.AddrPos{
++				{
++					Addr: obj.Addr{
++						Type:   obj.TYPE_REGLIST,
++						Offset: offset,
++					},
++				},
++			}
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		})
++
+ 	case ssa.OpARM64LoweredAtomicExchange64,
+ 		ssa.OpARM64LoweredAtomicExchange32:
+ 		// LDAXR	(Rarg0), Rout
+diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64.rules b/src/cmd/compile/internal/ssa/_gen/ARM64.rules
+index 18a6586fb0..8995700eca 100644
+--- a/src/cmd/compile/internal/ssa/_gen/ARM64.rules
++++ b/src/cmd/compile/internal/ssa/_gen/ARM64.rules
+@@ -559,6 +559,32 @@
+ 
+ (JumpTable idx) => (JUMPTABLE {makeJumpTableSym(b)} idx (MOVDaddr <typ.Uintptr> {makeJumpTableSym(b)} (SB)))
+ 
++// simd intrinsics
++(SimdAddU8x16 ...) => (LoweredSimdAdd8x16 ...)
++(SimdAdd8x16 ...) => (LoweredSimdAdd8x16 ...)
++(SimdSaturatingAddU8x16 ...) => (LoweredSimdSaturatingAddU8x16 ...)
++(SimdSaturatingAdd8x16 ...) => (LoweredSimdSaturatingAdd8x16 ...)
++(SimdSubU8x16 ...) => (LoweredSimdSub8x16 ...)
++(SimdSub8x16 ...) => (LoweredSimdSub8x16 ...)
++(SimdSaturatingSubU8x16 ...) => (LoweredSimdSaturatingSubU8x16 ...)
++(SimdSaturatingSub8x16 ...) => (LoweredSimdSaturatingSub8x16 ...)
++(SimdAndU8x16 ...) => (LoweredSimdAnd8x16 ...)
++(SimdAnd8x16 ...) => (LoweredSimdAnd8x16 ...)
++(SimdOrU8x16 ...) => (LoweredSimdOr8x16 ...)
++(SimdOr8x16 ...) => (LoweredSimdOr8x16 ...)
++(SimdXorU8x16 ...) => (LoweredSimdXor8x16 ...)
++(SimdXor8x16 ...) => (LoweredSimdXor8x16 ...)
++(SimdMaxU8x16 ...) => (LoweredSimdMaxU8x16 ...)
++(SimdMax8x16 ...) => (LoweredSimdMax8x16 ...)
++(SimdMinU8x16 ...) => (LoweredSimdMinU8x16 ...)
++(SimdMin8x16 ...) => (LoweredSimdMin8x16 ...)
++(SimdReduceMaxU8x16 ...) => (LoweredSimdReduceMaxU8x16 ...)
++(SimdReduceMax8x16 ...) => (LoweredSimdReduceMax8x16 ...)
++(SimdReduceMinU8x16 ...) => (LoweredSimdReduceMinU8x16 ...)
++(SimdReduceMin8x16 ...) => (LoweredSimdReduceMin8x16 ...)
++(SimdExtractU8x16 ...) => (LoweredSimdExtractU8x16 ...)
++(SimdLookupU8x16 ...) => (LoweredSimdLookupU8x16 ...)
++
+ // atomic intrinsics
+ // Note: these ops do not accept offset.
+ (AtomicLoad8   ...) => (LDARB ...)
+diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
+index 5a98aa0c54..5c17ac736a 100644
+--- a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
++++ b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
+@@ -644,6 +644,69 @@ func init() {
+ 		{name: "STLR", argLength: 3, reg: gpstore, asm: "STLR", faultOnNilArg0: true, hasSideEffects: true},
+ 		{name: "STLRW", argLength: 3, reg: gpstore, asm: "STLRW", faultOnNilArg0: true, hasSideEffects: true},
+ 
++		// SIMD wrapping add u8x16.
++		// *arg0 = arg1 + arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdAdd8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD saturating add u8x16.
++		// *arg0 = arg1 + arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdSaturatingAddU8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD saturating add i8x16.
++		// *arg0 = arg1 + arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdSaturatingAdd8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD wrapping sub u8x16.
++		// *arg0 = arg1 - arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdSub8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD saturating sub u8x16.
++		// *arg0 = arg1 - arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdSaturatingSubU8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD saturating sub i8x16.
++		// *arg0 = arg1 - arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdSaturatingSub8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD and i8x16.
++		// *arg0 = arg1 & arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdAnd8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD or i8x16.
++		// *arg0 = arg1 | arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdOr8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD xor i8x16.
++		// *arg0 = arg1 ^ arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdXor8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD max i8x16.
++		// *arg0 = max(arg1, arg2). arg3=mem. returns memory.
++		{name: "LoweredSimdMax8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD max u8x16.
++		// *arg0 = max(arg1, arg2). arg3=mem. returns memory.
++		{name: "LoweredSimdMaxU8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD min i8x16.
++		// *arg0 = min(arg1, arg2). arg3=mem. returns memory.
++		{name: "LoweredSimdMin8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++		// SIMD min u8x16.
++		// *arg0 = min(arg1, arg2). arg3=mem. returns memory.
++		{name: "LoweredSimdMinU8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD max i8x16.
++		{name: "LoweredSimdReduceMax8x16", argLength: 2, reg: gpload, typ: "(Int8,Mem)", faultOnNilArg0: true},
++		// SIMD max u8x16.
++		{name: "LoweredSimdReduceMaxU8x16", argLength: 2, reg: gpload, typ: "(UInt8,Mem)", faultOnNilArg0: true},
++
++		// SIMD min i8x16.
++		{name: "LoweredSimdReduceMin8x16", argLength: 2, reg: gpload, typ: "(Int8,Mem)", faultOnNilArg0: true},
++		// SIMD min u8x16.
++		{name: "LoweredSimdReduceMinU8x16", argLength: 2, reg: gpload, typ: "(UInt8,Mem)", faultOnNilArg0: true},
++		{name: "LoweredSimdExtractU8x16", argLength: 5, reg: gpstore2, typ: "Mem", faultOnNilArg0: true},
++		{name: "LoweredSimdLookupU8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true},
++
+ 		// atomic exchange.
+ 		// store arg1 to arg0. arg2=mem. returns <old content of *arg0, memory>. auxint must be zero.
+ 		// LDAXR	(Rarg0), Rout
+diff --git a/src/cmd/compile/internal/ssa/rewriteARM64.go b/src/cmd/compile/internal/ssa/rewriteARM64.go
+index 8f60f023b1..2329a20dc9 100644
+--- a/src/cmd/compile/internal/ssa/rewriteARM64.go
++++ b/src/cmd/compile/internal/ssa/rewriteARM64.go
+@@ -1049,6 +1049,78 @@ func rewriteValueARM64(v *Value) bool {
+ 	case OpSignExt8to64:
+ 		v.Op = OpARM64MOVBreg
+ 		return true
++	case OpSimdAdd8x16:
++		v.Op = OpARM64LoweredSimdAdd8x16
++		return true
++	case OpSimdAddU8x16:
++		v.Op = OpARM64LoweredSimdAdd8x16
++		return true
++	case OpSimdAnd8x16:
++		v.Op = OpARM64LoweredSimdAnd8x16
++		return true
++	case OpSimdAndU8x16:
++		v.Op = OpARM64LoweredSimdAnd8x16
++		return true
++	case OpSimdExtractU8x16:
++		v.Op = OpARM64LoweredSimdExtractU8x16
++		return true
++	case OpSimdLookupU8x16:
++		v.Op = OpARM64LoweredSimdLookupU8x16
++		return true
++	case OpSimdMax8x16:
++		v.Op = OpARM64LoweredSimdMax8x16
++		return true
++	case OpSimdMaxU8x16:
++		v.Op = OpARM64LoweredSimdMaxU8x16
++		return true
++	case OpSimdMin8x16:
++		v.Op = OpARM64LoweredSimdMin8x16
++		return true
++	case OpSimdMinU8x16:
++		v.Op = OpARM64LoweredSimdMinU8x16
++		return true
++	case OpSimdOr8x16:
++		v.Op = OpARM64LoweredSimdOr8x16
++		return true
++	case OpSimdOrU8x16:
++		v.Op = OpARM64LoweredSimdOr8x16
++		return true
++	case OpSimdReduceMax8x16:
++		v.Op = OpARM64LoweredSimdReduceMax8x16
++		return true
++	case OpSimdReduceMaxU8x16:
++		v.Op = OpARM64LoweredSimdReduceMaxU8x16
++		return true
++	case OpSimdReduceMin8x16:
++		v.Op = OpARM64LoweredSimdReduceMin8x16
++		return true
++	case OpSimdReduceMinU8x16:
++		v.Op = OpARM64LoweredSimdReduceMinU8x16
++		return true
++	case OpSimdSaturatingAdd8x16:
++		v.Op = OpARM64LoweredSimdSaturatingAdd8x16
++		return true
++	case OpSimdSaturatingAddU8x16:
++		v.Op = OpARM64LoweredSimdSaturatingAddU8x16
++		return true
++	case OpSimdSaturatingSub8x16:
++		v.Op = OpARM64LoweredSimdSaturatingSub8x16
++		return true
++	case OpSimdSaturatingSubU8x16:
++		v.Op = OpARM64LoweredSimdSaturatingSubU8x16
++		return true
++	case OpSimdSub8x16:
++		v.Op = OpARM64LoweredSimdSub8x16
++		return true
++	case OpSimdSubU8x16:
++		v.Op = OpARM64LoweredSimdSub8x16
++		return true
++	case OpSimdXor8x16:
++		v.Op = OpARM64LoweredSimdXor8x16
++		return true
++	case OpSimdXorU8x16:
++		v.Op = OpARM64LoweredSimdXor8x16
++		return true
+ 	case OpSlicemask:
+ 		return rewriteValueARM64_OpSlicemask(v)
+ 	case OpSqrt:
