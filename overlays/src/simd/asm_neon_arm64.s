@@ -37,3 +37,22 @@ TEXT ·lookup8x16(SB),NOSPLIT,$0
 
 TEXT ·lookupU8x16(SB),NOSPLIT,$0
 	JMP runtime∕internal∕simd·LookupU8x16(SB)
+
+TEXT ·shiftLeftU8x16(SB),NOSPLIT,$0
+	JMP runtime∕internal∕simd·ShiftLeft8x16(SB)
+
+TEXT ·shiftLeft8x16(SB),NOSPLIT,$0
+	JMP runtime∕internal∕simd·ShiftLeft8x16(SB)
+
+TEXT ·shiftRightU8x16(SB),NOSPLIT,$0
+	JMP runtime∕internal∕simd·ShiftRight8x16(SB)
+
+TEXT ·shiftRight8x16(SB),NOSPLIT,$0
+	JMP runtime∕internal∕simd·ShiftRight8x16(SB)
+
+TEXT ·splatU8x16(SB),NOSPLIT,$0
+	JMP runtime∕internal∕simd·Splat8x16(SB)
+
+TEXT ·splat8x16(SB),NOSPLIT,$0
+	JMP runtime∕internal∕simd·Splat8x16(SB)
+

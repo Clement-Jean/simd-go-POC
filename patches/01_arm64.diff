@@ -1,5 +1,5 @@
 diff --git a/src/cmd/compile/internal/arm64/ssa.go b/src/cmd/compile/internal/arm64/ssa.go
-index 27b4e881c0..aa9bc32454 100644
+index 27b4e881c0..ebf64553bd 100644
 --- a/src/cmd/compile/internal/arm64/ssa.go
 +++ b/src/cmd/compile/internal/arm64/ssa.go
 @@ -5,6 +5,7 @@
@@ -96,7 +96,7 @@ index 27b4e881c0..aa9bc32454 100644
  // generate the memory operand for the indexed load/store instructions.
  // base and idx are registers.
  func genIndexedOperand(op ssa.Op, base, idx int16) obj.Addr {
-@@ -577,6 +657,398 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+@@ -577,6 +657,520 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
  		p.Reg = v.Args[0].Reg()
  		p.To.Type = obj.TYPE_REG
  		p.To.Reg = v.Reg()
@@ -492,51 +492,166 @@ index 27b4e881c0..aa9bc32454 100644
 +			p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
 +		})
 +
++	case ssa.OpARM64LoweredSimdShiftLeft8x16:
++		// VSHL $n, V0.B16, V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		n := v.Args[2].AuxInt
++
++		vld1 := arm64.AVLD1
++		p := s.Prog(vld1)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REGLIST
++		offset, _ := RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_2D)
++		p.To.Offset = offset
++
++		vshl := arm64.AVSHL
++		p2 := s.Prog(vshl)
++		p2.From.Type = obj.TYPE_CONST
++		p2.From.Offset = n
++		p2.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++
++		vst1 := arm64.AVST1
++		p3 := s.Prog(vst1)
++		p3.From.Type = obj.TYPE_REGLIST
++		offset, _ = RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_2D)
++		p3.From.Offset = offset
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
++	case ssa.OpARM64LoweredSimdShiftRight8x16:
++		// VUSHR $n, V0.B16, V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		n := v.Args[2].AuxInt
++
++		if n == 0 {
++			return
++		}
++
++		vld1 := arm64.AVLD1
++		p := s.Prog(vld1)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REGLIST
++		offset, _ := RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_2D)
++		p.To.Offset = offset
++
++		vushr := arm64.AVUSHR
++		p2 := s.Prog(vushr)
++		p2.From.Type = obj.TYPE_CONST
++		p2.From.Offset = n
++		p2.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++
++		vst1 := arm64.AVST1
++		p3 := s.Prog(vst1)
++		p3.From.Type = obj.TYPE_REGLIST
++		offset, _ = RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_2D)
++		p3.From.Offset = offset
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
++	case ssa.OpARM64LoweredSimdShiftRight16x8:
++		// VUSHR $n, V0.H8, V0.8H
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		n := v.Args[2].AuxInt
++
++		if n == 0 {
++			return
++		}
++
++		vld1 := arm64.AVLD1
++		p := s.Prog(vld1)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REGLIST
++		offset, _ := RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_2D)
++		p.To.Offset = offset
++
++		vushr := arm64.AVUSHR
++		p2 := s.Prog(vushr)
++		p2.From.Type = obj.TYPE_CONST
++		p2.From.Offset = n
++		p2.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_8H & 15) << 5)
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_8H & 15) << 5)
++
++		vst1 := arm64.AVST1
++		p3 := s.Prog(vst1)
++		p3.From.Type = obj.TYPE_REGLIST
++		offset, _ = RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_2D)
++		p3.From.Offset = offset
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
++	case ssa.OpARM64LoweredSimdSplat8x16:
++		// VDUP R1, V0.B16
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++
++		vdup := arm64.AVDUP
++		p := s.Prog(vdup)
++		p.From.Type = obj.TYPE_REG
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = arm64.REG_ARNG + (arm64.REG_V0 & 31) + ((arm64.ARNG_16B & 15) << 5)
++
++		vst1 := arm64.AVST1
++		p2 := s.Prog(vst1)
++		p2.From.Type = obj.TYPE_REGLIST
++		offset, _ := RegisterListOffset(arm64.REG_V0, 1, arm64.ARNG_2D)
++		p2.From.Offset = offset
++		p2.To.Type = obj.TYPE_MEM
++		p2.To.Reg = r0
++
  	case ssa.OpARM64LoweredAtomicExchange64,
  		ssa.OpARM64LoweredAtomicExchange32:
  		// LDAXR	(Rarg0), Rout
 diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64.rules b/src/cmd/compile/internal/ssa/_gen/ARM64.rules
-index 18a6586fb0..8995700eca 100644
+index 18a6586fb0..95aa1123bc 100644
 --- a/src/cmd/compile/internal/ssa/_gen/ARM64.rules
 +++ b/src/cmd/compile/internal/ssa/_gen/ARM64.rules
-@@ -559,6 +559,32 @@
+@@ -559,6 +559,25 @@
  
  (JumpTable idx) => (JUMPTABLE {makeJumpTableSym(b)} idx (MOVDaddr <typ.Uintptr> {makeJumpTableSym(b)} (SB)))
  
 +// simd intrinsics
-+(SimdAddU8x16 ...) => (LoweredSimdAdd8x16 ...)
-+(SimdAdd8x16 ...) => (LoweredSimdAdd8x16 ...)
-+(SimdSaturatingAddU8x16 ...) => (LoweredSimdSaturatingAddU8x16 ...)
-+(SimdSaturatingAdd8x16 ...) => (LoweredSimdSaturatingAdd8x16 ...)
-+(SimdSubU8x16 ...) => (LoweredSimdSub8x16 ...)
-+(SimdSub8x16 ...) => (LoweredSimdSub8x16 ...)
-+(SimdSaturatingSubU8x16 ...) => (LoweredSimdSaturatingSubU8x16 ...)
-+(SimdSaturatingSub8x16 ...) => (LoweredSimdSaturatingSub8x16 ...)
-+(SimdAndU8x16 ...) => (LoweredSimdAnd8x16 ...)
-+(SimdAnd8x16 ...) => (LoweredSimdAnd8x16 ...)
-+(SimdOrU8x16 ...) => (LoweredSimdOr8x16 ...)
-+(SimdOr8x16 ...) => (LoweredSimdOr8x16 ...)
-+(SimdXorU8x16 ...) => (LoweredSimdXor8x16 ...)
-+(SimdXor8x16 ...) => (LoweredSimdXor8x16 ...)
-+(SimdMaxU8x16 ...) => (LoweredSimdMaxU8x16 ...)
-+(SimdMax8x16 ...) => (LoweredSimdMax8x16 ...)
-+(SimdMinU8x16 ...) => (LoweredSimdMinU8x16 ...)
-+(SimdMin8x16 ...) => (LoweredSimdMin8x16 ...)
-+(SimdReduceMaxU8x16 ...) => (LoweredSimdReduceMaxU8x16 ...)
-+(SimdReduceMax8x16 ...) => (LoweredSimdReduceMax8x16 ...)
-+(SimdReduceMinU8x16 ...) => (LoweredSimdReduceMinU8x16 ...)
-+(SimdReduceMin8x16 ...) => (LoweredSimdReduceMin8x16 ...)
++(SimdAdd(8x16|U8x16) ...) => (LoweredSimdAdd8x16 ...)
++(SimdSaturatingAdd(8x16|U8x16) ...) => (LoweredSimdSaturatingAdd(8x16|U8x16) ...)
++(SimdSub(8x16|U8x16) ...) => (LoweredSimdSub8x16 ...)
++(SimdSaturatingSub(8x16|U8x16) ...) => (LoweredSimdSaturatingSub(8x16|U8x16) ...)
++(SimdAnd(8x16|U8x16) ...) => (LoweredSimdAnd8x16 ...)
++(SimdOr(8x16|U8x16) ...) => (LoweredSimdOr8x16 ...)
++(SimdXor(8x16|U8x16) ...) => (LoweredSimdXor8x16 ...)
++(SimdMax(8x16|U8x16) ...) => (LoweredSimdMax(8x16|U8x16) ...)
++(SimdMin(8x16|U8x16) ...) => (LoweredSimdMin(8x16|U8x16) ...)
++(SimdReduceMax(8x16|U8x16) ...) => (LoweredSimdReduceMax(8x16|U8x16) ...)
++(SimdReduceMin(8x16|U8x16) ...) => (LoweredSimdReduceMin(8x16|U8x16) ...)
 +(SimdExtractU8x16 ...) => (LoweredSimdExtractU8x16 ...)
 +(SimdLookupU8x16 ...) => (LoweredSimdLookupU8x16 ...)
++(SimdShiftLeft8x16 ...) => (LoweredSimdShiftLeft8x16 ...)
++(SimdShiftRight8x16 ...) => (LoweredSimdShiftRight8x16 ...)
++(SimdShiftRight16x8 ...) => (LoweredSimdShiftRight16x8 ...)
++(SimdSplat8x16 ...) => (LoweredSimdSplat8x16 ...)
 +
  // atomic intrinsics
  // Note: these ops do not accept offset.
  (AtomicLoad8   ...) => (LDARB ...)
 diff --git a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
-index 5a98aa0c54..5c17ac736a 100644
+index 5a98aa0c54..df7bfd2766 100644
 --- a/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
 +++ b/src/cmd/compile/internal/ssa/_gen/ARM64Ops.go
-@@ -644,6 +644,69 @@ func init() {
+@@ -644,6 +644,73 @@ func init() {
  		{name: "STLR", argLength: 3, reg: gpstore, asm: "STLR", faultOnNilArg0: true, hasSideEffects: true},
  		{name: "STLRW", argLength: 3, reg: gpstore, asm: "STLRW", faultOnNilArg0: true, hasSideEffects: true},
  
@@ -602,510 +717,19 @@ index 5a98aa0c54..5c17ac736a 100644
 +		{name: "LoweredSimdReduceMinU8x16", argLength: 2, reg: gpload, typ: "(UInt8,Mem)", faultOnNilArg0: true},
 +		{name: "LoweredSimdExtractU8x16", argLength: 5, reg: gpstore2, typ: "Mem", faultOnNilArg0: true},
 +		{name: "LoweredSimdLookupU8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true},
++		{name: "LoweredSimdShiftLeft8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true},
++		{name: "LoweredSimdShiftRight8x16", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true},
++		{name: "LoweredSimdShiftRight16x8", argLength: 4, reg: gpstore2, typ: "Mem", faultOnNilArg0: true},
++		{name: "LoweredSimdSplat8x16", argLength: 3, reg: gpstore2, typ: "Mem", faultOnNilArg0: true},
 +
  		// atomic exchange.
  		// store arg1 to arg0. arg2=mem. returns <old content of *arg0, memory>. auxint must be zero.
  		// LDAXR	(Rarg0), Rout
-diff --git a/src/cmd/compile/internal/ssa/_gen/genericOps.go b/src/cmd/compile/internal/ssa/_gen/genericOps.go
-index 69eb48ce44..19cc7d67a2 100644
---- a/src/cmd/compile/internal/ssa/_gen/genericOps.go
-+++ b/src/cmd/compile/internal/ssa/_gen/genericOps.go
-@@ -586,6 +586,32 @@ var genericOps = []opData{
- 	{name: "SelectNAddr", argLength: 1, aux: "Int64"}, // arg0=result, auxint=field index.  Returns the address of auxint'th member. Used for un-SSA-able result types.
- 	{name: "MakeResult", argLength: -1},               // arg0 .. are components of a "Result" (like the result from a Call). The last arg should be memory (like the result from a call).
- 
-+	// SIMD
-+	{name: "SimdAddU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},           // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdAdd8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdSaturatingAddU8x16", argLength: 4, typ: "Mem", hasSideEffects: true}, // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdSaturatingAdd8x16", argLength: 4, typ: "Mem", hasSideEffects: true},  // *arg0 = arg1 + arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdSubU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},           // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdSub8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdSaturatingSubU8x16", argLength: 4, typ: "Mem", hasSideEffects: true}, // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdSaturatingSub8x16", argLength: 4, typ: "Mem", hasSideEffects: true},  // *arg0 = arg1 - arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdAndU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},           // *arg0 = arg1 & arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdAnd8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 & arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdOrU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 | arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdOr8x16", argLength: 4, typ: "Mem", hasSideEffects: true},             // *arg0 = arg1 | arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdXorU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},           // *arg0 = arg1 ^ arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdXor8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = arg1 ^ arg2.  arg3=memory.  Returns memory.
-+	{name: "SimdMax8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = max(arg1, arg2).  arg3=memory.  Returns memory.
-+	{name: "SimdMaxU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},           // *arg0 = max(arg1, arg2).  arg3=memory.  Returns memory.
-+	{name: "SimdMin8x16", argLength: 4, typ: "Mem", hasSideEffects: true},            // *arg0 = min(arg1, arg2).  arg3=memory.  Returns memory.
-+	{name: "SimdMinU8x16", argLength: 4, typ: "Mem", hasSideEffects: true},           // *arg0 = min(arg1, arg2).  arg3=memory.  Returns memory.
-+	{name: "SimdReduceMax8x16", argLength: 2, typ: "(Int8,Mem)"},                     // Returns max(arg0)
-+	{name: "SimdReduceMaxU8x16", argLength: 2, typ: "(UInt8,Mem)"},                   // Returns max(arg0)
-+	{name: "SimdReduceMin8x16", argLength: 2, typ: "(Int8,Mem)"},                     // Returns min(arg0)
-+	{name: "SimdReduceMinU8x16", argLength: 2, typ: "(UInt8,Mem)"},                   // Returns min(arg0)
-+	{name: "SimdExtractU8x16", argLength: 5, typ: "Mem"},
-+	{name: "SimdLookupU8x16", argLength: 4, typ: "Mem"},
-+
- 	// Atomic operations used for semantically inlining sync/atomic and
- 	// runtime/internal/atomic. Atomic loads return a new memory so that
- 	// the loads are properly ordered with respect to other loads and
-diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
-index c552832520..72c7fb3ff4 100644
---- a/src/cmd/compile/internal/ssa/opGen.go
-+++ b/src/cmd/compile/internal/ssa/opGen.go
-@@ -1704,6 +1704,25 @@ const (
- 	OpARM64STLRB
- 	OpARM64STLR
- 	OpARM64STLRW
-+	OpARM64LoweredSimdAdd8x16
-+	OpARM64LoweredSimdSaturatingAddU8x16
-+	OpARM64LoweredSimdSaturatingAdd8x16
-+	OpARM64LoweredSimdSub8x16
-+	OpARM64LoweredSimdSaturatingSubU8x16
-+	OpARM64LoweredSimdSaturatingSub8x16
-+	OpARM64LoweredSimdAnd8x16
-+	OpARM64LoweredSimdOr8x16
-+	OpARM64LoweredSimdXor8x16
-+	OpARM64LoweredSimdMax8x16
-+	OpARM64LoweredSimdMaxU8x16
-+	OpARM64LoweredSimdMin8x16
-+	OpARM64LoweredSimdMinU8x16
-+	OpARM64LoweredSimdReduceMax8x16
-+	OpARM64LoweredSimdReduceMaxU8x16
-+	OpARM64LoweredSimdReduceMin8x16
-+	OpARM64LoweredSimdReduceMinU8x16
-+	OpARM64LoweredSimdExtractU8x16
-+	OpARM64LoweredSimdLookupU8x16
- 	OpARM64LoweredAtomicExchange64
- 	OpARM64LoweredAtomicExchange32
- 	OpARM64LoweredAtomicExchange64Variant
-@@ -3189,6 +3208,30 @@ const (
- 	OpSelectN
- 	OpSelectNAddr
- 	OpMakeResult
-+	OpSimdAddU8x16
-+	OpSimdAdd8x16
-+	OpSimdSaturatingAddU8x16
-+	OpSimdSaturatingAdd8x16
-+	OpSimdSubU8x16
-+	OpSimdSub8x16
-+	OpSimdSaturatingSubU8x16
-+	OpSimdSaturatingSub8x16
-+	OpSimdAndU8x16
-+	OpSimdAnd8x16
-+	OpSimdOrU8x16
-+	OpSimdOr8x16
-+	OpSimdXorU8x16
-+	OpSimdXor8x16
-+	OpSimdMax8x16
-+	OpSimdMaxU8x16
-+	OpSimdMin8x16
-+	OpSimdMinU8x16
-+	OpSimdReduceMax8x16
-+	OpSimdReduceMaxU8x16
-+	OpSimdReduceMin8x16
-+	OpSimdReduceMinU8x16
-+	OpSimdExtractU8x16
-+	OpSimdLookupU8x16
- 	OpAtomicLoad8
- 	OpAtomicLoad32
- 	OpAtomicLoad64
-@@ -22771,6 +22814,251 @@ var opcodeTable = [...]opInfo{
- 			},
- 		},
- 	},
-+	{
-+		name:           "LoweredSimdAdd8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdSaturatingAddU8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdSaturatingAdd8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdSub8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdSaturatingSubU8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdSaturatingSub8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdAnd8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdOr8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdXor8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdMax8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdMaxU8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdMin8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdMinU8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		hasSideEffects: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdReduceMax8x16",
-+		argLen:         2,
-+		faultOnNilArg0: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+			outputs: []outputInfo{
-+				{0, 670826495}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 R30
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdReduceMaxU8x16",
-+		argLen:         2,
-+		faultOnNilArg0: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+			outputs: []outputInfo{
-+				{0, 670826495}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 R30
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdReduceMin8x16",
-+		argLen:         2,
-+		faultOnNilArg0: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+			outputs: []outputInfo{
-+				{0, 670826495}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 R30
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdReduceMinU8x16",
-+		argLen:         2,
-+		faultOnNilArg0: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+			outputs: []outputInfo{
-+				{0, 670826495}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 R30
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdExtractU8x16",
-+		argLen:         5,
-+		faultOnNilArg0: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
-+	{
-+		name:           "LoweredSimdLookupU8x16",
-+		argLen:         4,
-+		faultOnNilArg0: true,
-+		reg: regInfo{
-+			inputs: []inputInfo{
-+				{1, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{2, 805044223},           // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30
-+				{0, 9223372038733561855}, // R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R19 R20 R21 R22 R23 R24 R25 R26 g R30 SP SB
-+			},
-+		},
-+	},
- 	{
- 		name:            "LoweredAtomicExchange64",
- 		argLen:          3,
-@@ -40269,6 +40557,144 @@ var opcodeTable = [...]opInfo{
- 		argLen:  -1,
- 		generic: true,
- 	},
-+	{
-+		name:           "SimdAddU8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdAdd8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdSaturatingAddU8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdSaturatingAdd8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdSubU8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdSub8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdSaturatingSubU8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdSaturatingSub8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdAndU8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdAnd8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdOrU8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdOr8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdXorU8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdXor8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdMax8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdMaxU8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdMin8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:           "SimdMinU8x16",
-+		argLen:         4,
-+		hasSideEffects: true,
-+		generic:        true,
-+	},
-+	{
-+		name:    "SimdReduceMax8x16",
-+		argLen:  2,
-+		generic: true,
-+	},
-+	{
-+		name:    "SimdReduceMaxU8x16",
-+		argLen:  2,
-+		generic: true,
-+	},
-+	{
-+		name:    "SimdReduceMin8x16",
-+		argLen:  2,
-+		generic: true,
-+	},
-+	{
-+		name:    "SimdReduceMinU8x16",
-+		argLen:  2,
-+		generic: true,
-+	},
-+	{
-+		name:    "SimdExtractU8x16",
-+		argLen:  5,
-+		generic: true,
-+	},
-+	{
-+		name:    "SimdLookupU8x16",
-+		argLen:  4,
-+		generic: true,
-+	},
- 	{
- 		name:    "AtomicLoad8",
- 		argLen:  2,
 diff --git a/src/cmd/compile/internal/ssa/rewriteARM64.go b/src/cmd/compile/internal/ssa/rewriteARM64.go
-index 8f60f023b1..2329a20dc9 100644
+index 8f60f023b1..a82a4fc6c2 100644
 --- a/src/cmd/compile/internal/ssa/rewriteARM64.go
 +++ b/src/cmd/compile/internal/ssa/rewriteARM64.go
-@@ -1049,5 +1049,77 @@ func rewriteValueARM64(v *Value) bool {
+@@ -1049,6 +1049,90 @@ func rewriteValueARM64(v *Value) bool {
  	case OpSignExt8to64:
  		v.Op = OpARM64MOVBreg
  		return true
@@ -1168,6 +792,18 @@ index 8f60f023b1..2329a20dc9 100644
 +		return true
 +	case OpSimdSaturatingSubU8x16:
 +		v.Op = OpARM64LoweredSimdSaturatingSubU8x16
++		return true
++	case OpSimdShiftLeft8x16:
++		v.Op = OpARM64LoweredSimdShiftLeft8x16
++		return true
++	case OpSimdShiftRight16x8:
++		v.Op = OpARM64LoweredSimdShiftRight16x8
++		return true
++	case OpSimdShiftRight8x16:
++		v.Op = OpARM64LoweredSimdShiftRight8x16
++		return true
++	case OpSimdSplat8x16:
++		v.Op = OpARM64LoweredSimdSplat8x16
 +		return true
 +	case OpSimdSub8x16:
 +		v.Op = OpARM64LoweredSimdSub8x16
