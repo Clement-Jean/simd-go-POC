@@ -87,12 +87,12 @@ There are a few things to note:
 I believe we would need some kind of type aliases like the following:
 
 ```go
-type Int8x16 *[16]int8
-type Uint8x16 *[16]uint8
+type Int8x16 [16]int8
+type Uint8x16 [16]uint8
 //...
 ```
 
-These types should not be indexable and only instantiable through functions like `Splat8x16`. The compiler would then promote these special types (or custom pointers on array passed to simd functions) to vector registers. This would remove all the LD/ST dance and memory allocation that I have in my POC and thus make everything a whole lot faster.
+These types should not be indexable and only instantiable through functions like `Splat8x16`, `Set8x16`, ... The compiler would then promote these special types (or custom pointers on array passed to simd functions) to vector registers. This would remove all the LD/ST dance and memory allocation that I have in my POC and thus make everything a whole lot faster.
 
 In the end the previous code snippet could look like this:
 
