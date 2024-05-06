@@ -1,8 +1,8 @@
 diff --git a/src/cmd/compile/internal/amd64/ssa.go b/src/cmd/compile/internal/amd64/ssa.go
-index ab762c24f6..37031447f8 100644
+index ab762c24f6..49c575f94d 100644
 --- a/src/cmd/compile/internal/amd64/ssa.go
 +++ b/src/cmd/compile/internal/amd64/ssa.go
-@@ -1250,6 +1250,557 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+@@ -1250,6 +1250,578 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
  		if base.Debug.Nil != 0 && v.Pos.Line() > 1 { // v.Pos.Line()==1 in generated wrappers
  			base.WarnfAt(v.Pos, "generated nil check")
  		}
@@ -557,14 +557,35 @@ index ab762c24f6..37031447f8 100644
 +		p3.To.Type = obj.TYPE_MEM
 +		p3.To.Reg = r0
 +
++	case ssa.OpAMD64LoweredSimdMovMaskByteU8x16:
++		// VMOVDQA (arg0), X0
++		// PMOVMSKB X0, ret+8(FP)
++
++		r0 := v.Args[0].Reg()
++		out := v.Reg0()
++
++		vmovdqa := x86.AVMOVDQA
++		p := s.Prog(vmovdqa)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r0
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		movmskb := x86.APMOVMSKB
++		p1 := s.Prog(movmskb)
++		p1.From.Type = obj.TYPE_REG
++		p1.From.Reg = x86.REG_X0
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = out
++
  	case ssa.OpAMD64MOVBatomicload, ssa.OpAMD64MOVLatomicload, ssa.OpAMD64MOVQatomicload:
  		p := s.Prog(v.Op.Asm())
  		p.From.Type = obj.TYPE_MEM
 diff --git a/src/cmd/compile/internal/ssa/_gen/AMD64.rules b/src/cmd/compile/internal/ssa/_gen/AMD64.rules
-index 2a4c59ebfc..f3f6273a35 100644
+index 2a4c59ebfc..74d18055f0 100644
 --- a/src/cmd/compile/internal/ssa/_gen/AMD64.rules
 +++ b/src/cmd/compile/internal/ssa/_gen/AMD64.rules
-@@ -549,6 +549,18 @@
+@@ -549,6 +549,19 @@
  
  (JumpTable idx) => (JUMPTABLE {makeJumpTableSym(b)} idx (LEAQ <typ.Uintptr> {makeJumpTableSym(b)} (SB)))
  
@@ -579,15 +600,16 @@ index 2a4c59ebfc..f3f6273a35 100644
 +(SimdMax(8x16|U8x16) ...) => (LoweredSimdMax(8x16|U8x16) ...)
 +(SimdMin(8x16|U8x16) ...) => (LoweredSimdMin(8x16|U8x16) ...)
 +(SimdExtractU8x16 ...) => (LoweredSimdExtractU8x16 ...)
++(SimdMovMaskByteU8x16 ...) => (LoweredSimdMovMaskByteU8x16 ...)
 +
  // Atomic loads.  Other than preserving their ordering with respect to other loads, nothing special here.
  (AtomicLoad8 ptr mem) => (MOVBatomicload ptr mem)
  (AtomicLoad32 ptr mem) => (MOVLatomicload ptr mem)
 diff --git a/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go b/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
-index 606171947b..4b5d72d183 100644
+index 606171947b..853b24e21e 100644
 --- a/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
 +++ b/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
-@@ -981,6 +981,58 @@ func init() {
+@@ -981,6 +981,61 @@ func init() {
  		{name: "LoweredPanicBoundsB", argLength: 3, aux: "Int64", reg: regInfo{inputs: []regMask{cx, dx}}, typ: "Mem", call: true}, // arg0=idx, arg1=len, arg2=mem, returns memory. AuxInt contains report code (see PanicBounds in generic.go).
  		{name: "LoweredPanicBoundsC", argLength: 3, aux: "Int64", reg: regInfo{inputs: []regMask{ax, cx}}, typ: "Mem", call: true}, // arg0=idx, arg1=len, arg2=mem, returns memory. AuxInt contains report code (see PanicBounds in generic.go).
  
@@ -641,16 +663,19 @@ index 606171947b..4b5d72d183 100644
 +		// SIMD min u8x16.
 +		// *arg0 = min(arg1, arg2). arg3=mem. returns memory.
 +		{name: "LoweredSimdMinU8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
 +		{name: "LoweredSimdExtractU8x16", argLength: 5, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		{name: "LoweredSimdMovMaskByteU8x16", argLength: 2, reg: regInfo{inputs: []regMask{gpspsbg}, outputs: []regMask{gp}}, typ: "(Uint16,Mem)"},
 +
  		// Constant flag values. For any comparison, there are 5 possible
  		// outcomes: the three from the signed total order (<,==,>) and the
  		// three from the unsigned total order. The == cases overlap.
 diff --git a/src/cmd/compile/internal/ssa/rewriteAMD64.go b/src/cmd/compile/internal/ssa/rewriteAMD64.go
-index ba71189703..9a98c20f45 100644
+index ba71189703..5a2fbdd3d4 100644
 --- a/src/cmd/compile/internal/ssa/rewriteAMD64.go
 +++ b/src/cmd/compile/internal/ssa/rewriteAMD64.go
-@@ -1092,6 +1092,63 @@ func rewriteValueAMD64(v *Value) bool {
+@@ -1092,6 +1092,66 @@ func rewriteValueAMD64(v *Value) bool {
  	case OpSignExt8to64:
  		v.Op = OpAMD64MOVBQSX
  		return true
@@ -680,6 +705,9 @@ index ba71189703..9a98c20f45 100644
 +		return true
 +	case OpSimdMinU8x16:
 +		v.Op = OpAMD64LoweredSimdMinU8x16
++		return true
++	case OpSimdMovMaskByteU8x16:
++		v.Op = OpAMD64LoweredSimdMovMaskByteU8x16
 +		return true
 +	case OpSimdOr8x16:
 +		v.Op = OpAMD64LoweredSimdOr8x16

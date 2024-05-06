@@ -15,3 +15,14 @@ func MinU8x16(a, b [16]uint8) (out [16]uint8) {
 	minU8x16(&out, &a, &b)
 	return out
 }
+
+func movMaskByteU8x16(a *[16]uint8) uint16
+func movMaskByte8x16(a *[16]int8) uint16
+
+func MovMaskByteU8x16(a [16]uint8) uint16 {
+	return movMaskByteU8x16(&a)
+}
+
+func MovMaskByte8x16(a [16]int8) uint16 {
+	return movMaskByte8x16(&a)
+}
