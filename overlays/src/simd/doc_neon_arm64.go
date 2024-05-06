@@ -66,19 +66,6 @@ func ReduceMin8x16(a Int8x16) int8 {
 	return reduceMin8x16(&a)
 }
 
-func extract8x16(out, a, b *Int8x16, idx uint)
-func extractU8x16(out, a, b *Uint8x16, idx uint)
-
-func Extract8x16(a, b Int8x16, idx uint) (out Int8x16) {
-	extract8x16(&out, &a, &b, idx)
-	return out
-}
-
-func ExtractU8x16(a, b Uint8x16, idx uint) (out Uint8x16) {
-	extractU8x16(&out, &a, &b, idx)
-	return out
-}
-
 func lookup8x16(out, a *Int8x16, b *Uint8x16)
 func lookupU8x16(out, a, b *Uint8x16)
 
@@ -96,17 +83,17 @@ func shiftLeft8x16(out, a *Int8x16, idx uint)
 func shiftLeftU8x16(out, a *Uint8x16, idx uint)
 
 func ShiftLeft8x16(a Int8x16, idx uint) (out Int8x16) {
-	if idx > 7 {
-		return out
-	}
+	// if idx > 7 {
+	// 	return out
+	// }
 	shiftLeft8x16(&out, &a, idx)
 	return out
 }
 
 func ShiftLeftU8x16(a Uint8x16, idx uint) (out Uint8x16) {
-	if idx > 7 {
-		return out
-	}
+	// if idx > 7 {
+	// 	return out
+	// }
 	shiftLeftU8x16(&out, &a, idx)
 	return out
 }
@@ -115,17 +102,17 @@ func shiftRight8x16(out, a *Int8x16, idx uint)
 func shiftRightU8x16(out, a *Uint8x16, idx uint)
 
 func ShiftRight8x16(a Int8x16, idx uint) (out Int8x16) {
-	if idx < 1 || idx > 8 {
-		return out
-	}
+	// if idx < 1 || idx > 8 {
+	// 	return out
+	// }
 	shiftRight8x16(&out, &a, idx)
 	return out
 }
 
 func ShiftRightU8x16(a Uint8x16, idx uint) (out Uint8x16) {
-	if idx < 1 || idx > 8 {
-		return out
-	}
+	// if idx < 1 || idx > 8 {
+	// 	return out
+	// }
 	shiftRightU8x16(&out, &a, idx)
 	return out
 }
@@ -134,17 +121,17 @@ func shiftRight16x8(out, a *Uint16x8, idx uint)
 func shiftRightU16x8(out, a *Uint16x8, idx uint)
 
 func ShiftRight16x8(a Uint16x8, idx uint) (out Uint16x8) {
-	if idx < 1 || idx > 8 {
-		return out
-	}
+	// if idx < 1 || idx > 8 {
+	// 	return out
+	// }
 	shiftRight16x8(&out, &a, idx)
 	return out
 }
 
 func ShiftRightU16x8(a Uint16x8, idx uint) (out Uint16x8) {
-	if idx < 1 || idx > 8 {
-		return out
-	}
+	// if idx < 1 || idx > 16 {
+	// 	return out
+	// }
 	shiftRightU16x8(&out, &a, idx)
 	return out
 }

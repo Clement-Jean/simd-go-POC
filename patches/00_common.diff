@@ -1,5 +1,5 @@
 diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
-index c794d6ffd9..ebd1fc5566 100644
+index c794d6ffd9..8d565fc8f2 100644
 --- a/src/cmd/compile/internal/ssagen/ssa.go
 +++ b/src/cmd/compile/internal/ssagen/ssa.go
 @@ -4287,6 +4287,150 @@ func InitTables() {
@@ -118,7 +118,7 @@ index c794d6ffd9..ebd1fc5566 100644
 +			s.vars[memVar] = s.newValue4I(ssa.OpSimdExtractU8x16, types.TypeMem, args[3].AuxInt, args[0], args[1], args[2], s.mem())
 +			return nil
 +		},
-+		sys.ARM64)
++		sys.ARM64, sys.AMD64)
 +	addF("runtime/internal/simd", "LookupU8x16",
 +		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
 +			s.vars[memVar] = s.newValue4(ssa.OpSimdLookupU8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
@@ -127,7 +127,7 @@ index c794d6ffd9..ebd1fc5566 100644
 +		sys.ARM64)
 +	addF("runtime/internal/simd", "ShiftLeft8x16",
 +		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
-+			s.vars[memVar] = s.newValue4(ssa.OpSimdShiftLeft8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
++			s.vars[memVar] = s.newValue3I(ssa.OpSimdShiftLeft8x16, types.TypeMem, args[2].AuxInt, args[0], args[1], s.mem())
 +			return nil
 +		},
 +		sys.ARM64)
@@ -188,8 +188,8 @@ index c794d6ffd9..ebd1fc5566 100644
 +	alias("simd", "reduceMax8x16", "runtime/internal/simd", "ReduceMax8x16", sys.ArchARM64)
 +	alias("simd", "reduceMinU8x16", "runtime/internal/simd", "ReduceMinU8x16", sys.ArchARM64)
 +	alias("simd", "reduceMin8x16", "runtime/internal/simd", "ReduceMin8x16", sys.ArchARM64)
-+	alias("simd", "extract8x16", "runtime/internal/simd", "ExtractU8x16", sys.ArchARM64)
-+	alias("simd", "extractU8x16", "runtime/internal/simd", "ExtractU8x16", sys.ArchARM64)
++	alias("simd", "extract8x16", "runtime/internal/simd", "ExtractU8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "extractU8x16", "runtime/internal/simd", "ExtractU8x16", sys.ArchARM64, sys.ArchAMD64)
 +	alias("simd", "lookup8x16", "runtime/internal/simd", "LookupU8x16", sys.ArchARM64)
 +	alias("simd", "lookupU8x16", "runtime/internal/simd", "LookupU8x16", sys.ArchARM64)
 +	alias("simd", "shiftLeft8x16", "runtime/internal/simd", "ShiftLeft8x16", sys.ArchARM64)
@@ -205,10 +205,10 @@ index c794d6ffd9..ebd1fc5566 100644
  
  	// Note: these are disabled by flag_race in findIntrinsic below.
 diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
-index c552832520..5e32785806 100644
+index c552832520..56ca181618 100644
 --- a/src/cmd/compile/internal/ssa/opGen.go
 +++ b/src/cmd/compile/internal/ssa/opGen.go
-@@ -1052,6 +1052,19 @@ const (
+@@ -1052,6 +1052,20 @@ const (
  	OpAMD64LoweredPanicBoundsA
  	OpAMD64LoweredPanicBoundsB
  	OpAMD64LoweredPanicBoundsC
@@ -225,10 +225,11 @@ index c552832520..5e32785806 100644
 +	OpAMD64LoweredSimdMaxU8x16
 +	OpAMD64LoweredSimdMin8x16
 +	OpAMD64LoweredSimdMinU8x16
++	OpAMD64LoweredSimdExtractU8x16
  	OpAMD64FlagEQ
  	OpAMD64FlagLT_ULT
  	OpAMD64FlagLT_UGT
-@@ -1704,6 +1717,29 @@ const (
+@@ -1704,6 +1718,29 @@ const (
  	OpARM64STLRB
  	OpARM64STLR
  	OpARM64STLRW
@@ -258,7 +259,7 @@ index c552832520..5e32785806 100644
  	OpARM64LoweredAtomicExchange64
  	OpARM64LoweredAtomicExchange32
  	OpARM64LoweredAtomicExchange64Variant
-@@ -3189,6 +3225,34 @@ const (
+@@ -3189,6 +3226,34 @@ const (
  	OpSelectN
  	OpSelectNAddr
  	OpMakeResult
@@ -293,7 +294,7 @@ index c552832520..5e32785806 100644
  	OpAtomicLoad8
  	OpAtomicLoad32
  	OpAtomicLoad64
-@@ -13843,6 +13907,175 @@ var opcodeTable = [...]opInfo{
+@@ -13843,6 +13908,189 @@ var opcodeTable = [...]opInfo{
  			},
  		},
  	},
@@ -466,10 +467,24 @@ index c552832520..5e32785806 100644
 +			},
 +		},
 +	},
++	{
++		name:           "LoweredSimdExtractU8x16",
++		argLen:         5,
++		faultOnNilArg0: true,
++		hasSideEffects: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{3, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
  	{
  		name:   "FlagEQ",
  		argLen: 0,
-@@ -22771,6 +23004,299 @@ var opcodeTable = [...]opInfo{
+@@ -22771,6 +23019,299 @@ var opcodeTable = [...]opInfo{
  			},
  		},
  	},
@@ -769,7 +784,7 @@ index c552832520..5e32785806 100644
  	{
  		name:            "LoweredAtomicExchange64",
  		argLen:          3,
-@@ -40269,6 +40795,170 @@ var opcodeTable = [...]opInfo{
+@@ -40269,6 +40810,170 @@ var opcodeTable = [...]opInfo{
  		argLen:  -1,
  		generic: true,
  	},
