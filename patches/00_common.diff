@@ -1,5 +1,5 @@
 diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
-index c794d6ffd9..36e5e7eb7c 100644
+index c794d6ffd9..ae6297feef 100644
 --- a/src/cmd/compile/internal/ssagen/ssa.go
 +++ b/src/cmd/compile/internal/ssagen/ssa.go
 @@ -4287,6 +4287,157 @@ func InitTables() {
@@ -136,7 +136,7 @@ index c794d6ffd9..36e5e7eb7c 100644
 +			s.vars[memVar] = s.newValue4(ssa.OpSimdShiftRight8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
 +			return nil
 +		},
-+		sys.ARM64)
++		sys.ARM64, sys.AMD64)
 +	addF("runtime/internal/simd", "ShiftRight16x8",
 +		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
 +			s.vars[memVar] = s.newValue4(ssa.OpSimdShiftRight16x8, types.TypeMem, args[0], args[1], args[2], s.mem())
@@ -201,8 +201,8 @@ index c794d6ffd9..36e5e7eb7c 100644
 +	alias("simd", "lookupU8x16", "runtime/internal/simd", "LookupU8x16", sys.ArchARM64)
 +	alias("simd", "shiftLeft8x16", "runtime/internal/simd", "ShiftLeft8x16", sys.ArchARM64)
 +	alias("simd", "shiftLeftU8x16", "runtime/internal/simd", "ShiftLeft8x16", sys.ArchARM64)
-+	alias("simd", "shiftRight8x16", "runtime/internal/simd", "ShiftRight8x16", sys.ArchARM64)
-+	alias("simd", "shiftRightU8x16", "runtime/internal/simd", "ShiftRight8x16", sys.ArchARM64)
++	alias("simd", "shiftRight8x16", "runtime/internal/simd", "ShiftRight8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "shiftRightU8x16", "runtime/internal/simd", "ShiftRight8x16", sys.ArchARM64, sys.ArchAMD64)
 +	alias("simd", "shiftRight16x8", "runtime/internal/simd", "ShiftRight16x8", sys.ArchARM64)
 +	alias("simd", "shiftRightU16x8", "runtime/internal/simd", "ShiftRight16x8", sys.ArchARM64)
 +	alias("simd", "splat8x16", "runtime/internal/simd", "Splat8x16", sys.ArchARM64)
@@ -214,10 +214,10 @@ index c794d6ffd9..36e5e7eb7c 100644
  
  	// Note: these are disabled by flag_race in findIntrinsic below.
 diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
-index c552832520..823c99d9e6 100644
+index c552832520..72993ba195 100644
 --- a/src/cmd/compile/internal/ssa/opGen.go
 +++ b/src/cmd/compile/internal/ssa/opGen.go
-@@ -1052,6 +1052,21 @@ const (
+@@ -1052,6 +1052,22 @@ const (
  	OpAMD64LoweredPanicBoundsA
  	OpAMD64LoweredPanicBoundsB
  	OpAMD64LoweredPanicBoundsC
@@ -236,10 +236,11 @@ index c552832520..823c99d9e6 100644
 +	OpAMD64LoweredSimdMinU8x16
 +	OpAMD64LoweredSimdExtractU8x16
 +	OpAMD64LoweredSimdMovMaskByteU8x16
++	OpAMD64LoweredSimdShiftRight8x16
  	OpAMD64FlagEQ
  	OpAMD64FlagLT_ULT
  	OpAMD64FlagLT_UGT
-@@ -1704,6 +1719,29 @@ const (
+@@ -1704,6 +1720,29 @@ const (
  	OpARM64STLRB
  	OpARM64STLR
  	OpARM64STLRW
@@ -269,7 +270,7 @@ index c552832520..823c99d9e6 100644
  	OpARM64LoweredAtomicExchange64
  	OpARM64LoweredAtomicExchange32
  	OpARM64LoweredAtomicExchange64Variant
-@@ -3189,6 +3227,36 @@ const (
+@@ -3189,6 +3228,36 @@ const (
  	OpSelectN
  	OpSelectNAddr
  	OpMakeResult
@@ -306,7 +307,7 @@ index c552832520..823c99d9e6 100644
  	OpAtomicLoad8
  	OpAtomicLoad32
  	OpAtomicLoad64
-@@ -13843,6 +13911,201 @@ var opcodeTable = [...]opInfo{
+@@ -13843,6 +13912,213 @@ var opcodeTable = [...]opInfo{
  			},
  		},
  	},
@@ -505,10 +506,22 @@ index c552832520..823c99d9e6 100644
 +			},
 +		},
 +	},
++	{
++		name:           "LoweredSimdShiftRight8x16",
++		argLen:         4,
++		faultOnNilArg0: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{1, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{2, 49135},      // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++		},
++	},
  	{
  		name:   "FlagEQ",
  		argLen: 0,
-@@ -22771,6 +23034,299 @@ var opcodeTable = [...]opInfo{
+@@ -22771,6 +23047,299 @@ var opcodeTable = [...]opInfo{
  			},
  		},
  	},
@@ -808,7 +821,7 @@ index c552832520..823c99d9e6 100644
  	{
  		name:            "LoweredAtomicExchange64",
  		argLen:          3,
-@@ -40269,6 +40825,180 @@ var opcodeTable = [...]opInfo{
+@@ -40269,6 +40838,180 @@ var opcodeTable = [...]opInfo{
  		argLen:  -1,
  		generic: true,
  	},
