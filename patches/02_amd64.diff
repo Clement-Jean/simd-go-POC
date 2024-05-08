@@ -1,8 +1,8 @@
 diff --git a/src/cmd/compile/internal/amd64/ssa.go b/src/cmd/compile/internal/amd64/ssa.go
-index ab762c24f6..383eb0b7e4 100644
+index ab762c24f6..843e363db4 100644
 --- a/src/cmd/compile/internal/amd64/ssa.go
 +++ b/src/cmd/compile/internal/amd64/ssa.go
-@@ -1250,6 +1250,617 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+@@ -1250,6 +1250,614 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
  		if base.Debug.Nil != 0 && v.Pos.Line() > 1 { // v.Pos.Line()==1 in generated wrappers
  			base.WarnfAt(v.Pos, "generated nil check")
  		}
@@ -578,18 +578,15 @@ index ab762c24f6..383eb0b7e4 100644
 +		p1.To.Type = obj.TYPE_REG
 +		p1.To.Reg = out
 +
-+	case ssa.OpAMD64LoweredSimdShiftRight8x16:
++	case ssa.OpAMD64LoweredSimdAnd16x8:
 +		// VMOVDQA (arg1), X0
-+		// VPSRLDQ (arg2), X0, X0
++		// VMOVDQA (arg2), X1
++		// PAND X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
-+		n := v.Args[2].AuxInt
-+
-+		if n == 0 {
-+			return
-+		}
++		r2 := v.Args[2].Reg()
 +
 +		vmovdqa := x86.AVMOVDQA
 +		p := s.Prog(vmovdqa)
@@ -598,30 +595,30 @@ index ab762c24f6..383eb0b7e4 100644
 +		p.To.Type = obj.TYPE_REG
 +		p.To.Reg = x86.REG_X0
 +
-+		vpsrldq := x86.AVPSRLDQ
-+		p1 := s.Prog(vpsrldq)
-+		p1.From.Type = obj.TYPE_CONST
-+		p1.From.Offset = n
-+		p1.RestArgs = []obj.AddrPos{{
-+			Addr: obj.Addr{
-+				Type: obj.TYPE_REG,
-+				Reg:  x86.REG_X0,
-+			},
-+		}}
++		p1 := s.Prog(vmovdqa)
++		p1.From.Type = obj.TYPE_MEM
++		p1.From.Reg = r2
 +		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X0
++		p1.To.Reg = x86.REG_X1
 +
-+		p2 := s.Prog(vmovdqa)
++		pand := x86.APAND
++		p2 := s.Prog(pand)
 +		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X0
-+		p2.To.Type = obj.TYPE_MEM
-+		p2.To.Reg = r0
++		p2.From.Reg = x86.REG_X1
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = x86.REG_X0
++
++		p3 := s.Prog(vmovdqa)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = x86.REG_X0
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
 +
  	case ssa.OpAMD64MOVBatomicload, ssa.OpAMD64MOVLatomicload, ssa.OpAMD64MOVQatomicload:
  		p := s.Prog(v.Op.Asm())
  		p.From.Type = obj.TYPE_MEM
 diff --git a/src/cmd/compile/internal/ssa/_gen/AMD64.rules b/src/cmd/compile/internal/ssa/_gen/AMD64.rules
-index 2a4c59ebfc..4fb8ecacca 100644
+index 2a4c59ebfc..a240467b47 100644
 --- a/src/cmd/compile/internal/ssa/_gen/AMD64.rules
 +++ b/src/cmd/compile/internal/ssa/_gen/AMD64.rules
 @@ -549,6 +549,20 @@
@@ -634,19 +631,19 @@ index 2a4c59ebfc..4fb8ecacca 100644
 +(SimdSub(8x16|U8x16) ...) => (LoweredSimdSub8x16 ...)
 +(SimdSaturatingSub(8x16|U8x16) ...) => (LoweredSimdSaturatingSub(8x16|U8x16) ...)
 +(SimdAnd(8x16|U8x16) ...) => (LoweredSimdAnd8x16 ...)
++(SimdAnd(16x8|U16x8) ...) => (LoweredSimdAnd16x8 ...)
 +(SimdOr(8x16|U8x16) ...) => (LoweredSimdOr8x16 ...)
 +(SimdXor(8x16|U8x16) ...) => (LoweredSimdXor8x16 ...)
 +(SimdMax(8x16|U8x16) ...) => (LoweredSimdMax(8x16|U8x16) ...)
 +(SimdMin(8x16|U8x16) ...) => (LoweredSimdMin(8x16|U8x16) ...)
 +(SimdExtractU8x16 ...) => (LoweredSimdExtractU8x16 ...)
 +(SimdMovMaskByteU8x16 ...) => (LoweredSimdMovMaskByteU8x16 ...)
-+(SimdShiftRight8x16 ...) => (LoweredSimdShiftRight8x16 ...)
 +
  // Atomic loads.  Other than preserving their ordering with respect to other loads, nothing special here.
  (AtomicLoad8 ptr mem) => (MOVBatomicload ptr mem)
  (AtomicLoad32 ptr mem) => (MOVLatomicload ptr mem)
 diff --git a/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go b/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
-index 606171947b..88101c1589 100644
+index 606171947b..c6cd568da3 100644
 --- a/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
 +++ b/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
 @@ -981,6 +981,63 @@ func init() {
@@ -708,16 +705,16 @@ index 606171947b..88101c1589 100644
 +
 +		{name: "LoweredSimdMovMaskByteU8x16", argLength: 2, reg: regInfo{inputs: []regMask{gpspsbg}, outputs: []regMask{gp}}, typ: "(Uint16,Mem)"},
 +
-+		{name: "LoweredSimdShiftRight8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true},
++		{name: "LoweredSimdAnd16x8", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true},
 +
  		// Constant flag values. For any comparison, there are 5 possible
  		// outcomes: the three from the signed total order (<,==,>) and the
  		// three from the unsigned total order. The == cases overlap.
 diff --git a/src/cmd/compile/internal/ssa/rewriteAMD64.go b/src/cmd/compile/internal/ssa/rewriteAMD64.go
-index ba71189703..8e09f76cea 100644
+index ba71189703..7f6d08b5cd 100644
 --- a/src/cmd/compile/internal/ssa/rewriteAMD64.go
 +++ b/src/cmd/compile/internal/ssa/rewriteAMD64.go
-@@ -1092,6 +1092,69 @@ func rewriteValueAMD64(v *Value) bool {
+@@ -1092,6 +1092,72 @@ func rewriteValueAMD64(v *Value) bool {
  	case OpSignExt8to64:
  		v.Op = OpAMD64MOVBQSX
  		return true
@@ -727,8 +724,14 @@ index ba71189703..8e09f76cea 100644
 +	case OpSimdAddU8x16:
 +		v.Op = OpAMD64LoweredSimdAdd8x16
 +		return true
++	case OpSimdAnd16x8:
++		v.Op = OpAMD64LoweredSimdAnd16x8
++		return true
 +	case OpSimdAnd8x16:
 +		v.Op = OpAMD64LoweredSimdAnd8x16
++		return true
++	case OpSimdAndU16x8:
++		v.Op = OpAMD64LoweredSimdAnd16x8
 +		return true
 +	case OpSimdAndU8x16:
 +		v.Op = OpAMD64LoweredSimdAnd8x16
@@ -768,9 +771,6 @@ index ba71189703..8e09f76cea 100644
 +		return true
 +	case OpSimdSaturatingSubU8x16:
 +		v.Op = OpAMD64LoweredSimdSaturatingSubU8x16
-+		return true
-+	case OpSimdShiftRight8x16:
-+		v.Op = OpAMD64LoweredSimdShiftRight8x16
 +		return true
 +	case OpSimdSub8x16:
 +		v.Op = OpAMD64LoweredSimdSub8x16

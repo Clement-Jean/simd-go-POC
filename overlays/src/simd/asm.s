@@ -30,6 +30,12 @@ TEXT ·andU8x16(SB),NOSPLIT,$0
 TEXT ·and8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·And8x16(SB)
 
+TEXT ·andU16x8(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·And16x8(SB)
+
+TEXT ·and16x8(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·And16x8(SB)
+
 TEXT ·orU8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·Or8x16(SB)
 

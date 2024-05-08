@@ -1,8 +1,8 @@
 diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
-index c794d6ffd9..ae6297feef 100644
+index c794d6ffd9..877df3c198 100644
 --- a/src/cmd/compile/internal/ssagen/ssa.go
 +++ b/src/cmd/compile/internal/ssagen/ssa.go
-@@ -4287,6 +4287,157 @@ func InitTables() {
+@@ -4287,6 +4287,163 @@ func InitTables() {
  	addF("runtime/internal/sys", "PrefetchStreamed", makePrefetchFunc(ssa.OpPrefetchCacheStreamed),
  		sys.AMD64, sys.ARM64, sys.PPC64)
  
@@ -49,6 +49,12 @@ index c794d6ffd9..ae6297feef 100644
 +			return nil
 +		},
 +		sys.AMD64, sys.ARM64)
++	addF("runtime/internal/simd", "And16x8",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			s.vars[memVar] = s.newValue4(ssa.OpSimdAnd16x8, types.TypeMem, args[0], args[1], args[2], s.mem())
++			return nil
++		},
++		sys.AMD64)
 +	addF("runtime/internal/simd", "Or8x16",
 +		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
 +			s.vars[memVar] = s.newValue4(ssa.OpSimdOr8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
@@ -136,7 +142,7 @@ index c794d6ffd9..ae6297feef 100644
 +			s.vars[memVar] = s.newValue4(ssa.OpSimdShiftRight8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
 +			return nil
 +		},
-+		sys.ARM64, sys.AMD64)
++		sys.ARM64)
 +	addF("runtime/internal/simd", "ShiftRight16x8",
 +		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
 +			s.vars[memVar] = s.newValue4(ssa.OpSimdShiftRight16x8, types.TypeMem, args[0], args[1], args[2], s.mem())
@@ -160,7 +166,7 @@ index c794d6ffd9..ae6297feef 100644
  	/******** runtime/internal/atomic ********/
  	addF("runtime/internal/atomic", "Load",
  		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
-@@ -4386,7 +4537,6 @@ func InitTables() {
+@@ -4386,7 +4543,6 @@ func InitTables() {
  	type atomicOpEmitter func(s *state, n *ir.CallExpr, args []*ssa.Value, op ssa.Op, typ types.Kind)
  
  	makeAtomicGuardedIntrinsicARM64 := func(op0, op1 ssa.Op, typ, rtyp types.Kind, emit atomicOpEmitter) intrinsicBuilder {
@@ -168,7 +174,7 @@ index c794d6ffd9..ae6297feef 100644
  		return func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
  			// Target Atomic feature is identified by dynamic detection
  			addr := s.entryNewValue1A(ssa.OpAddr, types.Types[types.TBOOL].PtrTo(), ir.Syms.ARM64HasATOMICS, s.sb)
-@@ -5015,6 +5165,44 @@ func InitTables() {
+@@ -5015,6 +5171,46 @@ func InitTables() {
  	alias("runtime/internal/sys", "Len64", "math/bits", "Len64", all...)
  	alias("runtime/internal/sys", "OnesCount64", "math/bits", "OnesCount64", all...)
  
@@ -183,6 +189,8 @@ index c794d6ffd9..ae6297feef 100644
 +	alias("simd", "saturatingSub8x16", "runtime/internal/simd", "SaturatingSub8x16", sys.ArchARM64, sys.ArchAMD64)
 +	alias("simd", "andU8x16", "runtime/internal/simd", "And8x16", sys.ArchARM64, sys.ArchAMD64)
 +	alias("simd", "and8x16", "runtime/internal/simd", "And8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "andU16x8", "runtime/internal/simd", "And16x8", sys.ArchAMD64)
++	alias("simd", "and16x8", "runtime/internal/simd", "And16x8", sys.ArchAMD64)
 +	alias("simd", "orU8x16", "runtime/internal/simd", "Or8x16", sys.ArchARM64, sys.ArchAMD64)
 +	alias("simd", "or8x16", "runtime/internal/simd", "Or8x16", sys.ArchARM64, sys.ArchAMD64)
 +	alias("simd", "xorU8x16", "runtime/internal/simd", "Xor8x16", sys.ArchARM64, sys.ArchAMD64)
@@ -201,8 +209,8 @@ index c794d6ffd9..ae6297feef 100644
 +	alias("simd", "lookupU8x16", "runtime/internal/simd", "LookupU8x16", sys.ArchARM64)
 +	alias("simd", "shiftLeft8x16", "runtime/internal/simd", "ShiftLeft8x16", sys.ArchARM64)
 +	alias("simd", "shiftLeftU8x16", "runtime/internal/simd", "ShiftLeft8x16", sys.ArchARM64)
-+	alias("simd", "shiftRight8x16", "runtime/internal/simd", "ShiftRight8x16", sys.ArchARM64, sys.ArchAMD64)
-+	alias("simd", "shiftRightU8x16", "runtime/internal/simd", "ShiftRight8x16", sys.ArchARM64, sys.ArchAMD64)
++	alias("simd", "shiftRight8x16", "runtime/internal/simd", "ShiftRight8x16", sys.ArchARM64)
++	alias("simd", "shiftRightU8x16", "runtime/internal/simd", "ShiftRight8x16", sys.ArchARM64)
 +	alias("simd", "shiftRight16x8", "runtime/internal/simd", "ShiftRight16x8", sys.ArchARM64)
 +	alias("simd", "shiftRightU16x8", "runtime/internal/simd", "ShiftRight16x8", sys.ArchARM64)
 +	alias("simd", "splat8x16", "runtime/internal/simd", "Splat8x16", sys.ArchARM64)
@@ -214,7 +222,7 @@ index c794d6ffd9..ae6297feef 100644
  
  	// Note: these are disabled by flag_race in findIntrinsic below.
 diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
-index c552832520..72993ba195 100644
+index c552832520..7077e2a4b5 100644
 --- a/src/cmd/compile/internal/ssa/opGen.go
 +++ b/src/cmd/compile/internal/ssa/opGen.go
 @@ -1052,6 +1052,22 @@ const (
@@ -236,7 +244,7 @@ index c552832520..72993ba195 100644
 +	OpAMD64LoweredSimdMinU8x16
 +	OpAMD64LoweredSimdExtractU8x16
 +	OpAMD64LoweredSimdMovMaskByteU8x16
-+	OpAMD64LoweredSimdShiftRight8x16
++	OpAMD64LoweredSimdAnd16x8
  	OpAMD64FlagEQ
  	OpAMD64FlagLT_ULT
  	OpAMD64FlagLT_UGT
@@ -270,7 +278,7 @@ index c552832520..72993ba195 100644
  	OpARM64LoweredAtomicExchange64
  	OpARM64LoweredAtomicExchange32
  	OpARM64LoweredAtomicExchange64Variant
-@@ -3189,6 +3228,36 @@ const (
+@@ -3189,6 +3228,38 @@ const (
  	OpSelectN
  	OpSelectNAddr
  	OpMakeResult
@@ -282,6 +290,8 @@ index c552832520..72993ba195 100644
 +	OpSimdSub8x16
 +	OpSimdSaturatingSubU8x16
 +	OpSimdSaturatingSub8x16
++	OpSimdAndU16x8
++	OpSimdAnd16x8
 +	OpSimdAndU8x16
 +	OpSimdAnd8x16
 +	OpSimdOrU8x16
@@ -307,7 +317,7 @@ index c552832520..72993ba195 100644
  	OpAtomicLoad8
  	OpAtomicLoad32
  	OpAtomicLoad64
-@@ -13843,6 +13912,213 @@ var opcodeTable = [...]opInfo{
+@@ -13843,6 +13914,213 @@ var opcodeTable = [...]opInfo{
  			},
  		},
  	},
@@ -507,7 +517,7 @@ index c552832520..72993ba195 100644
 +		},
 +	},
 +	{
-+		name:           "LoweredSimdShiftRight8x16",
++		name:           "LoweredSimdAnd16x8",
 +		argLen:         4,
 +		faultOnNilArg0: true,
 +		reg: regInfo{
@@ -521,7 +531,7 @@ index c552832520..72993ba195 100644
  	{
  		name:   "FlagEQ",
  		argLen: 0,
-@@ -22771,6 +23047,299 @@ var opcodeTable = [...]opInfo{
+@@ -22771,6 +23049,299 @@ var opcodeTable = [...]opInfo{
  			},
  		},
  	},
@@ -821,7 +831,7 @@ index c552832520..72993ba195 100644
  	{
  		name:            "LoweredAtomicExchange64",
  		argLen:          3,
-@@ -40269,6 +40838,180 @@ var opcodeTable = [...]opInfo{
+@@ -40269,6 +40840,192 @@ var opcodeTable = [...]opInfo{
  		argLen:  -1,
  		generic: true,
  	},
@@ -869,6 +879,18 @@ index c552832520..72993ba195 100644
 +	},
 +	{
 +		name:           "SimdSaturatingSub8x16",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdAndU16x8",
++		argLen:         4,
++		hasSideEffects: true,
++		generic:        true,
++	},
++	{
++		name:           "SimdAnd16x8",
 +		argLen:         4,
 +		hasSideEffects: true,
 +		generic:        true,
@@ -1003,10 +1025,10 @@ index c552832520..72993ba195 100644
  		name:    "AtomicLoad8",
  		argLen:  2,
 diff --git a/src/cmd/compile/internal/ssa/_gen/genericOps.go b/src/cmd/compile/internal/ssa/_gen/genericOps.go
-index 69eb48ce44..11fd476915 100644
+index 69eb48ce44..fe7d52df7e 100644
 --- a/src/cmd/compile/internal/ssa/_gen/genericOps.go
 +++ b/src/cmd/compile/internal/ssa/_gen/genericOps.go
-@@ -586,6 +586,37 @@ var genericOps = []opData{
+@@ -586,6 +586,39 @@ var genericOps = []opData{
  	{name: "SelectNAddr", argLength: 1, aux: "Int64"}, // arg0=result, auxint=field index.  Returns the address of auxint'th member. Used for un-SSA-able result types.
  	{name: "MakeResult", argLength: -1},               // arg0 .. are components of a "Result" (like the result from a Call). The last arg should be memory (like the result from a call).
  
@@ -1018,6 +1040,8 @@ index 69eb48ce44..11fd476915 100644
 +	{name: "SimdSub8x16", argLength: 4, typ: "(Mem)", hasSideEffects: true},
 +	{name: "SimdSaturatingSubU8x16", argLength: 4, typ: "(Mem)", hasSideEffects: true},
 +	{name: "SimdSaturatingSub8x16", argLength: 4, typ: "(Mem)", hasSideEffects: true},
++	{name: "SimdAndU16x8", argLength: 4, typ: "(Mem)", hasSideEffects: true},
++	{name: "SimdAnd16x8", argLength: 4, typ: "(Mem)", hasSideEffects: true},
 +	{name: "SimdAndU8x16", argLength: 4, typ: "(Mem)", hasSideEffects: true},
 +	{name: "SimdAnd8x16", argLength: 4, typ: "(Mem)", hasSideEffects: true},
 +	{name: "SimdOrU8x16", argLength: 4, typ: "(Mem)", hasSideEffects: true},

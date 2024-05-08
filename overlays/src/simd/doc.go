@@ -70,6 +70,20 @@ func And8x16(a, b Int8x16) (out Int8x16) {
 	return out
 }
 
+func andU16x8(out, a, b *Uint16x8)
+
+func and16x8(out, a, b *Int16x8)
+
+func AndU16x8(a, b Uint16x8) (out Uint16x8) {
+	andU16x8(&out, &a, &b)
+	return out
+}
+
+func And16x8(a, b Int16x8) (out Int16x8) {
+	and16x8(&out, &a, &b)
+	return out
+}
+
 func orU8x16(out, a, b *Uint8x16)
 
 func or8x16(out, a, b *Int8x16)
