@@ -48,8 +48,8 @@ TEXT ·xorU8x16(SB),NOSPLIT,$0
 TEXT ·xor8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·Xor8x16(SB)
 
-TEXT ·shiftRightU8x16(SB),NOSPLIT,$0
-	JMP runtime∕internal∕simd·ShiftRight8x16(SB)
+TEXT ·shiftRightU16x8(SB),NOSPLIT,$0
+	JMP runtime∕internal∕simd·ShiftRight16x8(SB)
 
-TEXT ·shiftRight8x16(SB),NOSPLIT,$0
-	JMP runtime∕internal∕simd·ShiftRight8x16(SB)
+TEXT ·shiftRight16x8(SB),NOSPLIT,$0
+	JMP runtime∕internal∕simd·ShiftRight16x8(SB)

@@ -98,21 +98,21 @@ func ShiftLeftU8x16(a Uint8x16, idx uint) (out Uint8x16) {
 	return out
 }
 
-func shiftRight16x8(out, a *Uint16x8, idx uint)
-func shiftRightU16x8(out, a *Uint16x8, idx uint)
+func shiftRight8x16(out, a *Int8x16, idx uint)
+func shiftRightU8x16(out, a *Uint8x16, idx uint)
 
-func ShiftRight16x8(a Uint16x8, idx uint) (out Uint16x8) {
+func ShiftRight8x16(a Int8x16, idx uint) (out Int8x16) {
 	// if idx < 1 || idx > 8 {
 	// 	return out
 	// }
-	shiftRight16x8(&out, &a, idx)
+	shiftRight8x16(&out, &a, idx)
 	return out
 }
 
-func ShiftRightU16x8(a Uint16x8, idx uint) (out Uint16x8) {
-	// if idx < 1 || idx > 16 {
+func ShiftRightU8x16(a Uint8x16, idx uint) (out Uint8x16) {
+	// if idx < 1 || idx > 8 {
 	// 	return out
 	// }
-	shiftRightU16x8(&out, &a, idx)
+	shiftRightU8x16(&out, &a, idx)
 	return out
 }
