@@ -13,3 +13,6 @@ TEXT ·minU8x16(SB),NOSPLIT,$0
 
 TEXT ·min8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·Min8x16(SB)
+
+TEXT ·allZerosU8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·AllZerosU8x16(SB)

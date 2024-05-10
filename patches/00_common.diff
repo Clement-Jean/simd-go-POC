@@ -1,8 +1,8 @@
 diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
-index c794d6ffd9..b999bf8fd2 100644
+index c794d6ffd9..c3fbb8240b 100644
 --- a/src/cmd/compile/internal/ssagen/ssa.go
 +++ b/src/cmd/compile/internal/ssagen/ssa.go
-@@ -4287,6 +4287,163 @@ func InitTables() {
+@@ -4287,6 +4287,170 @@ func InitTables() {
  	addF("runtime/internal/sys", "PrefetchStreamed", makePrefetchFunc(ssa.OpPrefetchCacheStreamed),
  		sys.AMD64, sys.ARM64, sys.PPC64)
  
@@ -162,11 +162,18 @@ index c794d6ffd9..b999bf8fd2 100644
 +			return s.newValue1(ssa.OpSelect0, types.Types[types.TUINT16], v)
 +		},
 +		sys.AMD64)
++	addF("runtime/internal/simd", "AllZerosU8x16",
++		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
++			v := s.newValue2(ssa.OpSimdAllZerosU8x16, types.NewTuple(types.Types[types.TBOOL], types.TypeMem), args[0], s.mem())
++			s.vars[memVar] = s.newValue1(ssa.OpSelect1, types.TypeMem, v)
++			return s.newValue1(ssa.OpSelect0, types.Types[types.TBOOL], v)
++		},
++		sys.AMD64)
 +
  	/******** runtime/internal/atomic ********/
  	addF("runtime/internal/atomic", "Load",
  		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
-@@ -4386,7 +4543,6 @@ func InitTables() {
+@@ -4386,7 +4550,6 @@ func InitTables() {
  	type atomicOpEmitter func(s *state, n *ir.CallExpr, args []*ssa.Value, op ssa.Op, typ types.Kind)
  
  	makeAtomicGuardedIntrinsicARM64 := func(op0, op1 ssa.Op, typ, rtyp types.Kind, emit atomicOpEmitter) intrinsicBuilder {
@@ -174,7 +181,7 @@ index c794d6ffd9..b999bf8fd2 100644
  		return func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
  			// Target Atomic feature is identified by dynamic detection
  			addr := s.entryNewValue1A(ssa.OpAddr, types.Types[types.TBOOL].PtrTo(), ir.Syms.ARM64HasATOMICS, s.sb)
-@@ -5015,6 +5171,46 @@ func InitTables() {
+@@ -5015,6 +5178,48 @@ func InitTables() {
  	alias("runtime/internal/sys", "Len64", "math/bits", "Len64", all...)
  	alias("runtime/internal/sys", "OnesCount64", "math/bits", "OnesCount64", all...)
  
@@ -217,15 +224,17 @@ index c794d6ffd9..b999bf8fd2 100644
 +	alias("simd", "splatU8x16", "runtime/internal/simd", "Splat8x16", sys.ArchARM64)
 +	alias("simd", "movMaskByte8x16", "runtime/internal/simd", "MovMaskByteU8x16", sys.ArchAMD64)
 +	alias("simd", "movMaskByteU8x16", "runtime/internal/simd", "MovMaskByteU8x16", sys.ArchAMD64)
++	alias("simd", "allZerosU8x16", "runtime/internal/simd", "AllZerosU8x16", sys.ArchAMD64)
++	alias("simd", "allZeros8x16", "runtime/internal/simd", "AllZerosU8x16", sys.ArchAMD64)
 +
  	/******** sync/atomic ********/
  
  	// Note: these are disabled by flag_race in findIntrinsic below.
 diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
-index c552832520..1bddfacd7f 100644
+index c552832520..421a383960 100644
 --- a/src/cmd/compile/internal/ssa/opGen.go
 +++ b/src/cmd/compile/internal/ssa/opGen.go
-@@ -1052,6 +1052,24 @@ const (
+@@ -1052,6 +1052,25 @@ const (
  	OpAMD64LoweredPanicBoundsA
  	OpAMD64LoweredPanicBoundsB
  	OpAMD64LoweredPanicBoundsC
@@ -247,10 +256,11 @@ index c552832520..1bddfacd7f 100644
 +	OpAMD64LoweredSimdAnd16x8
 +	OpAMD64LoweredSimdShiftRight16x8
 +	OpAMD64LoweredSimdLookupU8x16
++	OpAMD64LoweredSimdAllZerosU8x16
  	OpAMD64FlagEQ
  	OpAMD64FlagLT_ULT
  	OpAMD64FlagLT_UGT
-@@ -1704,6 +1722,29 @@ const (
+@@ -1704,6 +1723,29 @@ const (
  	OpARM64STLRB
  	OpARM64STLR
  	OpARM64STLRW
@@ -280,7 +290,7 @@ index c552832520..1bddfacd7f 100644
  	OpARM64LoweredAtomicExchange64
  	OpARM64LoweredAtomicExchange32
  	OpARM64LoweredAtomicExchange64Variant
-@@ -3189,6 +3230,38 @@ const (
+@@ -3189,6 +3231,39 @@ const (
  	OpSelectN
  	OpSelectNAddr
  	OpMakeResult
@@ -316,10 +326,11 @@ index c552832520..1bddfacd7f 100644
 +	OpSimdSplat8x16
 +	OpSimdMovMaskByte8x16
 +	OpSimdMovMaskByteU8x16
++	OpSimdAllZerosU8x16
  	OpAtomicLoad8
  	OpAtomicLoad32
  	OpAtomicLoad64
-@@ -13843,6 +13916,238 @@ var opcodeTable = [...]opInfo{
+@@ -13843,6 +13918,251 @@ var opcodeTable = [...]opInfo{
  			},
  		},
  	},
@@ -555,10 +566,23 @@ index c552832520..1bddfacd7f 100644
 +			},
 +		},
 +	},
++	{
++		name:           "LoweredSimdAllZerosU8x16",
++		argLen:         2,
++		faultOnNilArg0: true,
++		reg: regInfo{
++			inputs: []inputInfo{
++				{0, 4295032831}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 g R15 SB
++			},
++			outputs: []outputInfo{
++				{0, 49135}, // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
++			},
++		},
++	},
  	{
  		name:   "FlagEQ",
  		argLen: 0,
-@@ -22771,6 +23076,299 @@ var opcodeTable = [...]opInfo{
+@@ -22771,6 +23091,299 @@ var opcodeTable = [...]opInfo{
  			},
  		},
  	},
@@ -858,7 +882,7 @@ index c552832520..1bddfacd7f 100644
  	{
  		name:            "LoweredAtomicExchange64",
  		argLen:          3,
-@@ -40269,6 +40867,192 @@ var opcodeTable = [...]opInfo{
+@@ -40269,6 +40882,197 @@ var opcodeTable = [...]opInfo{
  		argLen:  -1,
  		generic: true,
  	},
@@ -1048,14 +1072,19 @@ index c552832520..1bddfacd7f 100644
 +		argLen:  2,
 +		generic: true,
 +	},
++	{
++		name:    "SimdAllZerosU8x16",
++		argLen:  2,
++		generic: true,
++	},
  	{
  		name:    "AtomicLoad8",
  		argLen:  2,
 diff --git a/src/cmd/compile/internal/ssa/_gen/genericOps.go b/src/cmd/compile/internal/ssa/_gen/genericOps.go
-index 69eb48ce44..fe7d52df7e 100644
+index 69eb48ce44..3f9cb2d92b 100644
 --- a/src/cmd/compile/internal/ssa/_gen/genericOps.go
 +++ b/src/cmd/compile/internal/ssa/_gen/genericOps.go
-@@ -586,6 +586,39 @@ var genericOps = []opData{
+@@ -586,6 +586,40 @@ var genericOps = []opData{
  	{name: "SelectNAddr", argLength: 1, aux: "Int64"}, // arg0=result, auxint=field index.  Returns the address of auxint'th member. Used for un-SSA-able result types.
  	{name: "MakeResult", argLength: -1},               // arg0 .. are components of a "Result" (like the result from a Call). The last arg should be memory (like the result from a call).
  
@@ -1091,6 +1120,7 @@ index 69eb48ce44..fe7d52df7e 100644
 +	{name: "SimdSplat8x16", argLength: 3, typ: "(Mem)", hasSideEffects: true},
 +	{name: "SimdMovMaskByte8x16", argLength: 2, typ: "(Uint16,Mem)"},
 +	{name: "SimdMovMaskByteU8x16", argLength: 2, typ: "(Uint16,Mem)"},
++	{name: "SimdAllZerosU8x16", argLength: 2, typ: "(Bool,Mem)"},
 +
  	// Atomic operations used for semantically inlining sync/atomic and
  	// runtime/internal/atomic. Atomic loads return a new memory so that
