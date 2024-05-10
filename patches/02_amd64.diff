@@ -1,5 +1,5 @@
 diff --git a/src/cmd/compile/internal/amd64/ssa.go b/src/cmd/compile/internal/amd64/ssa.go
-index ab762c24f6..fbc3381609 100644
+index ab762c24f6..ff1d6b3e3d 100644
 --- a/src/cmd/compile/internal/amd64/ssa.go
 +++ b/src/cmd/compile/internal/amd64/ssa.go
 @@ -1250,6 +1250,723 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
@@ -517,8 +517,8 @@ index ab762c24f6..fbc3381609 100644
 +	case ssa.OpAMD64LoweredSimdExtractU8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// PALIGNR (arg3), X1, X0
-+		// VMOVDQA X0, (arg0)
++		// PALIGNR (arg3), X0, X1
++		// VMOVDQA X1, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
@@ -545,15 +545,15 @@ index ab762c24f6..fbc3381609 100644
 +		p2.RestArgs = []obj.AddrPos{{
 +			Addr: obj.Addr{
 +				Type: obj.TYPE_REG,
-+				Reg:  x86.REG_X1,
++				Reg:  x86.REG_X0,
 +			},
 +		}}
 +		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
++		p2.To.Reg = x86.REG_X1
 +
 +		p3 := s.Prog(vmovdqa)
 +		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
++		p3.From.Reg = x86.REG_X1
 +		p3.To.Type = obj.TYPE_MEM
 +		p3.To.Reg = r0
 +
