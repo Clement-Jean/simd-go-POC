@@ -32,7 +32,7 @@ func validString(in string) bool {
 			isFourthByte := simd.SaturatingSubU8x16(prev3, fourthByte)
 			must23 := simd.OrU8x16(isThirdByte, isFourthByte)
 			must23As80 := simd.AndU8x16(must23, v80)
-			if err := simd.XorU8x16(must23As80, sc); simd.MovMaskByteU8x16(err) != 0 {
+			if err := simd.XorU8x16(must23As80, sc); !simd.AllZerosU8x16(err) {
 				return false
 			}
 			prevIncomplete = simd.SaturatingSubU8x16(currBlock, maxValue)
