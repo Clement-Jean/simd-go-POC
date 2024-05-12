@@ -6,7 +6,7 @@ import (
 )
 
 func validString(in string) bool {
-	var prevIncomplete, prevInputBlock [16]uint8
+	var prevIncomplete, prevInputBlock simd.Uint8x16
 	var processedLen int
 
 	for ; processedLen+16 <= len(in); processedLen += 16 {
@@ -16,7 +16,7 @@ func validString(in string) bool {
 			if simd.ReduceMaxU8x16(prevIncomplete) != 0 {
 				return false
 			}
-			prevIncomplete = [16]uint8{}
+			prevIncomplete = simd.Uint8x16{}
 		} else {
 			prev1 := simd.ExtractU8x16(prevInputBlock, currBlock, 15)
 			byte1High := simd.LookupU8x16(shuf1, simd.ShiftRightU8x16(prev1, 4))
