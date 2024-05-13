@@ -1,8 +1,38 @@
 diff --git a/src/cmd/compile/internal/amd64/ssa.go b/src/cmd/compile/internal/amd64/ssa.go
-index ab762c24f6..ff1d6b3e3d 100644
+index ab762c24f6..f28af004a6 100644
 --- a/src/cmd/compile/internal/amd64/ssa.go
 +++ b/src/cmd/compile/internal/amd64/ssa.go
-@@ -1250,6 +1250,723 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+@@ -200,6 +200,29 @@ func getgFromTLS(s *ssagen.State, r int16) {
+ 	}
+ }
+ 
++func loadStoreVector3(s *ssagen.State, r0, r1, r2 int16, op func(s *ssagen.State)) {
++	vmovdqa := x86.AVMOVDQA
++	p := s.Prog(vmovdqa)
++	p.From.Type = obj.TYPE_MEM
++	p.From.Reg = r1
++	p.To.Type = obj.TYPE_REG
++	p.To.Reg = x86.REG_X0
++
++	p1 := s.Prog(vmovdqa)
++	p1.From.Type = obj.TYPE_MEM
++	p1.From.Reg = r2
++	p1.To.Type = obj.TYPE_REG
++	p1.To.Reg = x86.REG_X1
++
++	op(s)
++
++	p2 := s.Prog(vmovdqa)
++	p2.From.Type = obj.TYPE_REG
++	p2.From.Reg = x86.REG_X0
++	p2.To.Type = obj.TYPE_MEM
++	p2.To.Reg = r0
++}
++
+ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+ 	switch v.Op {
+ 	case ssa.OpAMD64VFMADD231SD:
+@@ -1250,6 +1273,430 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
  		if base.Debug.Nil != 0 && v.Pos.Line() > 1 { // v.Pos.Line()==1 in generated wrappers
  			base.WarnfAt(v.Pos, "generated nil check")
  		}
@@ -10,509 +40,249 @@ index ab762c24f6..ff1d6b3e3d 100644
 +	case ssa.OpAMD64LoweredSimdAdd8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPADDB X1, X0, X0
++		// PADDB X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpaddb := x86.AVPADDB
-+		p2 := s.Prog(vpaddb)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			paddb := x86.APADDB
++			p := s.Prog(paddb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdSub8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPSUBB X1, X0, X0
++		// PSUBB X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpsubb := x86.AVPSUBB
-+		p2 := s.Prog(vpsubb)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			psubb := x86.APSUBB
++			p := s.Prog(psubb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdSaturatingAdd8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPADDSB X1, X0, X0
++		// PADDSB X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpaddsb := x86.AVPADDSB
-+		p2 := s.Prog(vpaddsb)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			paddsb := x86.APADDSB
++			p := s.Prog(paddsb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdSaturatingAddU8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPADDUSB X1, X0, X0
++		// PADDUSB X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpaddusb := x86.AVPADDUSB
-+		p2 := s.Prog(vpaddusb)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			paddusb := x86.APADDUSB
++			p := s.Prog(paddusb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdSaturatingSub8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPSUBSB X1, X0, X0
++		// PSUBSB X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpsubsb := x86.AVPSUBSB
-+		p2 := s.Prog(vpsubsb)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			psubsb := x86.APSUBSB
++			p := s.Prog(psubsb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdSaturatingSubU8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPSUBUSB X1, X0, X0
++		// PSUBUSB X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpsubusb := x86.AVPSUBUSB
-+		p2 := s.Prog(vpsubusb)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			psubusb := x86.APSUBUSB
++			p := s.Prog(psubusb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdAnd8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPAND X1, X0, X0
++		// PAND X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpand := x86.AVPAND
-+		p2 := s.Prog(vpand)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pand := x86.APAND
++			p := s.Prog(pand)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdOr8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPOR X1, X0, X0
++		// POR X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpor := x86.AVPOR
-+		p2 := s.Prog(vpor)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			por := x86.APOR
++			p := s.Prog(por)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdXor8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPXOR X1, X0, X0
++		// PXOR X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpxor := x86.AVPXOR
-+		p2 := s.Prog(vpxor)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pxor := x86.APXOR
++			p := s.Prog(pxor)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdMin8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPMINSB X1, X0, X0
++		// PMINSB X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpminsb := x86.AVPMINSB
-+		p2 := s.Prog(vpminsb)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pminsb := x86.APMINSB
++			p := s.Prog(pminsb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdMinU8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPMINUB X1, X0, X0
++		// PMINUB X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpminub := x86.AVPMINUB
-+		p2 := s.Prog(vpminub)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pminub := x86.APMINUB
++			p := s.Prog(pminub)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdMax8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPMAXSB X1, X0, X0
++		// PMAXSB X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpmaxsb := x86.AVPMAXSB
-+		p2 := s.Prog(vpmaxsb)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pmaxsb := x86.APMAXSB
++			p := s.Prog(pmaxsb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdMaxU8x16:
 +		// VMOVDQA (arg1), X0
 +		// VMOVDQA (arg2), X1
-+		// VPMAXUB X1, X0, X0
++		// PMAXUB X1, X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		vpmaxub := x86.AVPMAXUB
-+		p2 := s.Prog(vpmaxub)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.RestArgs = []obj.AddrPos{
-+			{Addr: obj.Addr{Type: obj.TYPE_REG, Reg: x86.REG_X0}},
-+		}
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pmaxub := x86.APMAXUB
++			p := s.Prog(pmaxub)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdExtractU8x16:
 +		// VMOVDQA (arg1), X0
@@ -557,6 +327,7 @@ index ab762c24f6..ff1d6b3e3d 100644
 +		p3.To.Type = obj.TYPE_MEM
 +		p3.To.Reg = r0
 +
++
 +	case ssa.OpAMD64LoweredSimdMovMaskByteU8x16:
 +		// VMOVDQA (arg0), X0
 +		// PMOVMSKB X0, ret+8(FP)
@@ -588,31 +359,14 @@ index ab762c24f6..ff1d6b3e3d 100644
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		pand := x86.APAND
-+		p2 := s.Prog(pand)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pand := x86.APAND
++			p := s.Prog(pand)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdShiftRight16x8:
 +		// VMOVDQA (arg1), X0
@@ -653,31 +407,14 @@ index ab762c24f6..ff1d6b3e3d 100644
 +		r1 := v.Args[1].Reg()
 +		r2 := v.Args[2].Reg()
 +
-+		vmovdqa := x86.AVMOVDQA
-+		p := s.Prog(vmovdqa)
-+		p.From.Type = obj.TYPE_MEM
-+		p.From.Reg = r1
-+		p.To.Type = obj.TYPE_REG
-+		p.To.Reg = x86.REG_X0
-+
-+		p1 := s.Prog(vmovdqa)
-+		p1.From.Type = obj.TYPE_MEM
-+		p1.From.Reg = r2
-+		p1.To.Type = obj.TYPE_REG
-+		p1.To.Reg = x86.REG_X1
-+
-+		pshufb := x86.APSHUFB
-+		p2 := s.Prog(pshufb)
-+		p2.From.Type = obj.TYPE_REG
-+		p2.From.Reg = x86.REG_X1
-+		p2.To.Type = obj.TYPE_REG
-+		p2.To.Reg = x86.REG_X0
-+
-+		p3 := s.Prog(vmovdqa)
-+		p3.From.Type = obj.TYPE_REG
-+		p3.From.Reg = x86.REG_X0
-+		p3.To.Type = obj.TYPE_MEM
-+		p3.To.Reg = r0
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pshufb := x86.APSHUFB
++			p := s.Prog(pshufb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
 +
 +	case ssa.OpAMD64LoweredSimdAllZerosU8x16:
 +		// VMOVDQA (arg1), X0
