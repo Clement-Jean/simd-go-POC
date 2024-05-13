@@ -1,4 +1,4 @@
-//go:build sse2
+//go:build sse2 || sse3 || sse4.1
 
 package simd
 
