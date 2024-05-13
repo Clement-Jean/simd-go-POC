@@ -30,6 +30,8 @@ __m128i max_epi8(__m128i a, __m128i b) { return _mm_max_epi8(a, b); }
 __m128i max_epu8(__m128i a, __m128i b) { return _mm_max_epu8(a, b); }
 __m128i min_epi8(__m128i a, __m128i b) { return _mm_min_epi8(a, b); }
 __m128i min_epu8(__m128i a, __m128i b) { return _mm_min_epu8(a, b); }
+__m128i alignr_epi8(__m128i a, __m128i b, int imm8) { return _mm_alignr_epi8(a, b, 15); }
+__m128i shuffle_epi8(__m128i a, __m128i b) { return _mm_shuffle_epi8(a, b); }   
 */
 import "C"
 
@@ -102,3 +104,11 @@ func MmMinEpi8(v0, v1 M128I) M128I { return C.min_epi8(v0, v1) }
 
 // Compare packed unsigned 8-bit integers in a and b, and store packed minimum values in dst.
 func MmMinEpu8(v0, v1 M128I) M128I { return C.min_epu8(v0, v1) }
+
+// Concatenate 16-byte blocks in a and b into a 32-byte temporary result, shift the result right by imm8 bytes, and stores the low 16 bytes in dst.
+// /!\ imm8 is always 15, even if you pass another value.
+// this is because we apparently cannot pass an 8-bit immediate from Go.
+func MmAlignrEpi8(v0, v1 M128I, imm8 int) M128I { return C.alignr_epi8(v0, v1, C.int(imm8)) }
+
+// Shuffle packed 8-bit integers in a according to shuffle control mask in the corresponding 8-bit element of b, and store the results in dst.
+func MmShuffleEpi8(v0, v1 M128I) M128I { return C.shuffle_epi8(v0, v1) }
