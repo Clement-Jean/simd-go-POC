@@ -1,3 +1,5 @@
+//go:build ssse3 || neon
+
 package tests
 
 import (

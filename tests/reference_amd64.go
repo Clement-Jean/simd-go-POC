@@ -181,3 +181,13 @@ func referenceLookupU8x16(a, b [16]uint8) (result [16]uint8) {
 	internal.MmStoreuSu128((*internal.Uint8)(unsafe.Pointer(&result[0])), _result)
 	return result
 }
+
+func referenceAllZeros8x16(a [16]int8) bool {
+	_a := internal.MmSetrEpi8(a)
+	return internal.MmTestAllZeros(_a)
+}
+
+func referenceAllZerosU8x16(a [16]uint8) bool {
+	_a := internal.MmSetrEpu8(a)
+	return internal.MmTestAllZeros(_a)
+}

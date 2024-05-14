@@ -1,3 +1,5 @@
+//go:build sse2 || sse3 || sse4.1 || neon
+
 package tests
 
 import (
