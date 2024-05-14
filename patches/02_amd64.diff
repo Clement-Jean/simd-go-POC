@@ -1,5 +1,5 @@
 diff --git a/src/cmd/compile/internal/amd64/ssa.go b/src/cmd/compile/internal/amd64/ssa.go
-index ab762c24f6..f28af004a6 100644
+index ab762c24f6..8f799049ff 100644
 --- a/src/cmd/compile/internal/amd64/ssa.go
 +++ b/src/cmd/compile/internal/amd64/ssa.go
 @@ -200,6 +200,29 @@ func getgFromTLS(s *ssagen.State, r int16) {
@@ -370,7 +370,7 @@ index ab762c24f6..f28af004a6 100644
 +
 +	case ssa.OpAMD64LoweredSimdShiftRight16x8:
 +		// VMOVDQA (arg1), X0
-+		// PSHRW (arg2), X0
++		// PSRLW (arg2), X0
 +		// VMOVDQA X0, (arg0)
 +
 +		r0 := v.Args[0].Reg()
