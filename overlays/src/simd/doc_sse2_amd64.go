@@ -110,42 +110,36 @@ func shiftRight16x8(out, a *Uint16x8, idx uint)
 func shiftRightU16x8(out, a *Uint16x8, idx uint)
 
 func ShiftRight16x8(a Uint16x8, idx uint) (out Uint16x8) {
-	// if idx < 1 || idx > 8 {
-	// 	return out
-	// }
 	shiftRight16x8(&out, &a, idx)
 	return out
 }
 
 func ShiftRightU16x8(a Uint16x8, idx uint) (out Uint16x8) {
-	// if idx < 1 || idx > 16 {
-	// 	return out
-	// }
 	shiftRightU16x8(&out, &a, idx)
 	return out
 }
 
-func maxU8x16(out, a, b *[16]uint8)
+func maxU8x16(out, a, b *Uint8x16)
 
-func MaxU8x16(a, b [16]uint8) (out [16]uint8) {
+func MaxU8x16(a, b Uint8x16) (out Uint8x16) {
 	maxU8x16(&out, &a, &b)
 	return out
 }
 
-func minU8x16(out, a, b *[16]uint8)
+func minU8x16(out, a, b *Uint8x16)
 
-func MinU8x16(a, b [16]uint8) (out [16]uint8) {
+func MinU8x16(a, b Uint8x16) (out Uint8x16) {
 	minU8x16(&out, &a, &b)
 	return out
 }
 
-func movMaskByteU8x16(a *[16]uint8) uint16
-func movMaskByte8x16(a *[16]int8) uint16
+func movMaskByteU8x16(a *Uint8x16) uint16
+func movMaskByte8x16(a *Int8x16) uint16
 
-func MovMaskByteU8x16(a [16]uint8) uint16 {
+func MovMaskByteU8x16(a Uint8x16) uint16 {
 	return movMaskByteU8x16(&a)
 }
 
-func MovMaskByte8x16(a [16]int8) uint16 {
+func MovMaskByte8x16(a Int8x16) uint16 {
 	return movMaskByte8x16(&a)
 }
