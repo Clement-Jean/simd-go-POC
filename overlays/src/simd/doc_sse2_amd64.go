@@ -106,10 +106,10 @@ func Xor8x16(a, b Int8x16) (out Int8x16) {
 	return out
 }
 
-func shiftRight16x8(out, a *Uint16x8, idx uint)
+func shiftRight16x8(out, a *Int16x8, idx uint)
 func shiftRightU16x8(out, a *Uint16x8, idx uint)
 
-func ShiftRight16x8(a Uint16x8, idx uint) (out Uint16x8) {
+func ShiftRight16x8(a Int16x8, idx uint) (out Int16x8) {
 	shiftRight16x8(&out, &a, idx)
 	return out
 }
