@@ -43,6 +43,7 @@ __m128i min_epu8(__m128i a, __m128i b) { return _mm_min_epu8(a, b); }
 __m128i alignr_epi8(__m128i a, __m128i b, int imm8) { return _mm_alignr_epi8(a, b, 15); }
 __m128i shuffle_epi8(__m128i a, __m128i b) { return _mm_shuffle_epi8(a, b); }
 int test_all_zeros(__m128i mask, __m128i a) { return _mm_test_all_zeros(mask, a); }
+int movemask_epi8(__m128i a) { return _mm_movemask_epi8(a); }   
 */
 import "C"
 
@@ -157,3 +158,6 @@ func MmTestAllZeros(v0 M128I) bool {
 	}
 	return false
 }
+
+// Create mask from the most significant bit of each 8-bit element in a, and store the result in dst.
+func MmMoveMaskEpi8(v0 M128I) uint16 { return uint16(C.movemask_epi8(v0)) }
