@@ -4,6 +4,7 @@ package tests
 
 import (
 	"simd"
+	"slices"
 	"testing"
 )
 
