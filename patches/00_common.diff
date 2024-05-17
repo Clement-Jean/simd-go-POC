@@ -1,5 +1,5 @@
 diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
-index c794d6ffd9..c3fbb8240b 100644
+index c794d6ffd9..a3417cbd2b 100644
 --- a/src/cmd/compile/internal/ssagen/ssa.go
 +++ b/src/cmd/compile/internal/ssagen/ssa.go
 @@ -4287,6 +4287,170 @@ func InitTables() {
@@ -133,7 +133,7 @@ index c794d6ffd9..c3fbb8240b 100644
 +		sys.ARM64, sys.AMD64)
 +	addF("runtime/internal/simd", "ShiftLeft8x16",
 +		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
-+			s.vars[memVar] = s.newValue3I(ssa.OpSimdShiftLeft8x16, types.TypeMem, args[2].AuxInt, args[0], args[1], s.mem())
++			s.vars[memVar] = s.newValue4(ssa.OpSimdShiftLeft8x16, types.TypeMem, args[0], args[1], args[2], s.mem())
 +			return nil
 +		},
 +		sys.ARM64)
