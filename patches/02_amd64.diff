@@ -1,0 +1,653 @@
+diff --git a/src/cmd/compile/internal/amd64/ssa.go b/src/cmd/compile/internal/amd64/ssa.go
+index ab762c24f6..8f799049ff 100644
+--- a/src/cmd/compile/internal/amd64/ssa.go
++++ b/src/cmd/compile/internal/amd64/ssa.go
+@@ -200,6 +200,29 @@ func getgFromTLS(s *ssagen.State, r int16) {
+ 	}
+ }
+ 
++func loadStoreVector3(s *ssagen.State, r0, r1, r2 int16, op func(s *ssagen.State)) {
++	vmovdqa := x86.AVMOVDQA
++	p := s.Prog(vmovdqa)
++	p.From.Type = obj.TYPE_MEM
++	p.From.Reg = r1
++	p.To.Type = obj.TYPE_REG
++	p.To.Reg = x86.REG_X0
++
++	p1 := s.Prog(vmovdqa)
++	p1.From.Type = obj.TYPE_MEM
++	p1.From.Reg = r2
++	p1.To.Type = obj.TYPE_REG
++	p1.To.Reg = x86.REG_X1
++
++	op(s)
++
++	p2 := s.Prog(vmovdqa)
++	p2.From.Type = obj.TYPE_REG
++	p2.From.Reg = x86.REG_X0
++	p2.To.Type = obj.TYPE_MEM
++	p2.To.Reg = r0
++}
++
+ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+ 	switch v.Op {
+ 	case ssa.OpAMD64VFMADD231SD:
+@@ -1250,6 +1273,430 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
+ 		if base.Debug.Nil != 0 && v.Pos.Line() > 1 { // v.Pos.Line()==1 in generated wrappers
+ 			base.WarnfAt(v.Pos, "generated nil check")
+ 		}
++
++	case ssa.OpAMD64LoweredSimdAdd8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PADDB X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			paddb := x86.APADDB
++			p := s.Prog(paddb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdSub8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PSUBB X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			psubb := x86.APSUBB
++			p := s.Prog(psubb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdSaturatingAdd8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PADDSB X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			paddsb := x86.APADDSB
++			p := s.Prog(paddsb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdSaturatingAddU8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PADDUSB X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			paddusb := x86.APADDUSB
++			p := s.Prog(paddusb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdSaturatingSub8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PSUBSB X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			psubsb := x86.APSUBSB
++			p := s.Prog(psubsb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdSaturatingSubU8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PSUBUSB X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			psubusb := x86.APSUBUSB
++			p := s.Prog(psubusb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdAnd8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PAND X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pand := x86.APAND
++			p := s.Prog(pand)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdOr8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// POR X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			por := x86.APOR
++			p := s.Prog(por)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdXor8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PXOR X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pxor := x86.APXOR
++			p := s.Prog(pxor)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdMin8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PMINSB X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pminsb := x86.APMINSB
++			p := s.Prog(pminsb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdMinU8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PMINUB X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pminub := x86.APMINUB
++			p := s.Prog(pminub)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdMax8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PMAXSB X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pmaxsb := x86.APMAXSB
++			p := s.Prog(pmaxsb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdMaxU8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PMAXUB X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pmaxub := x86.APMAXUB
++			p := s.Prog(pmaxub)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdExtractU8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PALIGNR (arg3), X0, X1
++		// VMOVDQA X1, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++		n := v.AuxInt
++
++		vmovdqa := x86.AVMOVDQA
++		p := s.Prog(vmovdqa)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		p1 := s.Prog(vmovdqa)
++		p1.From.Type = obj.TYPE_MEM
++		p1.From.Reg = r2
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = x86.REG_X1
++
++		palignr := x86.APALIGNR
++		p2 := s.Prog(palignr)
++		p2.From.Type = obj.TYPE_CONST
++		p2.From.Offset = n
++		p2.RestArgs = []obj.AddrPos{{
++			Addr: obj.Addr{
++				Type: obj.TYPE_REG,
++				Reg:  x86.REG_X0,
++			},
++		}}
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = x86.REG_X1
++
++		p3 := s.Prog(vmovdqa)
++		p3.From.Type = obj.TYPE_REG
++		p3.From.Reg = x86.REG_X1
++		p3.To.Type = obj.TYPE_MEM
++		p3.To.Reg = r0
++
++
++	case ssa.OpAMD64LoweredSimdMovMaskByteU8x16:
++		// VMOVDQA (arg0), X0
++		// PMOVMSKB X0, ret+8(FP)
++
++		r0 := v.Args[0].Reg()
++		out := v.Reg0()
++
++		vmovdqa := x86.AVMOVDQA
++		p := s.Prog(vmovdqa)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r0
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		movmskb := x86.APMOVMSKB
++		p1 := s.Prog(movmskb)
++		p1.From.Type = obj.TYPE_REG
++		p1.From.Reg = x86.REG_X0
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = out
++
++	case ssa.OpAMD64LoweredSimdAnd16x8:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PAND X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pand := x86.APAND
++			p := s.Prog(pand)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdShiftRight16x8:
++		// VMOVDQA (arg1), X0
++		// PSRLW (arg2), X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		n := v.Args[2].AuxInt
++
++		vmovdqa := x86.AVMOVDQA
++		p := s.Prog(vmovdqa)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r1
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		psrlw := x86.APSRLW
++		p1 := s.Prog(psrlw)
++		p1.From.Type = obj.TYPE_CONST
++		p1.From.Offset = n
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = x86.REG_X0
++
++		p2 := s.Prog(vmovdqa)
++		p2.From.Type = obj.TYPE_REG
++		p2.From.Reg = x86.REG_X0
++		p2.To.Type = obj.TYPE_MEM
++		p2.To.Reg = r0
++
++	case ssa.OpAMD64LoweredSimdLookupU8x16:
++		// VMOVDQA (arg1), X0
++		// VMOVDQA (arg2), X1
++		// PSHUFB X1, X0
++		// VMOVDQA X0, (arg0)
++
++		r0 := v.Args[0].Reg()
++		r1 := v.Args[1].Reg()
++		r2 := v.Args[2].Reg()
++
++		loadStoreVector3(s, r0, r1, r2, func(s *ssagen.State) {
++			pshufb := x86.APSHUFB
++			p := s.Prog(pshufb)
++			p.From.Type = obj.TYPE_REG
++			p.From.Reg = x86.REG_X1
++			p.To.Type = obj.TYPE_REG
++			p.To.Reg = x86.REG_X0
++		})
++
++	case ssa.OpAMD64LoweredSimdAllZerosU8x16:
++		// VMOVDQA (arg1), X0
++		// PTEST X0, X0
++		// JNE false
++		// MOVB $1, ret+8(FP)
++		// false:
++		// RET
++
++		r0 := v.Args[0].Reg()
++		out := v.Reg0()
++
++		vmovdqa := x86.AVMOVDQA
++		p := s.Prog(vmovdqa)
++		p.From.Type = obj.TYPE_MEM
++		p.From.Reg = r0
++		p.To.Type = obj.TYPE_REG
++		p.To.Reg = x86.REG_X0
++
++		ptest := x86.APTEST
++		p1 := s.Prog(ptest)
++		p1.From.Type = obj.TYPE_REG
++		p1.From.Reg = x86.REG_X0
++		p1.To.Type = obj.TYPE_REG
++		p1.To.Reg = x86.REG_X0
++
++		movb := x86.AMOVB
++		p2 := s.Prog(movb)
++		p2.From.Type = obj.TYPE_CONST
++		p2.From.Offset = 0
++		p2.To.Type = obj.TYPE_REG
++		p2.To.Reg = out
++
++		jne := x86.AJNE
++		j := s.Prog(jne)
++		j.To.Type = obj.TYPE_BRANCH
++
++		p3 := s.Prog(movb)
++		p3.From.Type = obj.TYPE_CONST
++		p3.From.Offset = 1
++		p3.To.Type = obj.TYPE_REG
++		p3.To.Reg = out
++
++		j.To.SetTarget(s.Pc())
++
+ 	case ssa.OpAMD64MOVBatomicload, ssa.OpAMD64MOVLatomicload, ssa.OpAMD64MOVQatomicload:
+ 		p := s.Prog(v.Op.Asm())
+ 		p.From.Type = obj.TYPE_MEM
+diff --git a/src/cmd/compile/internal/ssa/_gen/AMD64.rules b/src/cmd/compile/internal/ssa/_gen/AMD64.rules
+index 2a4c59ebfc..039e051655 100644
+--- a/src/cmd/compile/internal/ssa/_gen/AMD64.rules
++++ b/src/cmd/compile/internal/ssa/_gen/AMD64.rules
+@@ -549,6 +549,23 @@
+ 
+ (JumpTable idx) => (JUMPTABLE {makeJumpTableSym(b)} idx (LEAQ <typ.Uintptr> {makeJumpTableSym(b)} (SB)))
+ 
++// simd intrinsics
++(SimdAdd(8x16|U8x16) ...) => (LoweredSimdAdd8x16 ...)
++(SimdSaturatingAdd(8x16|U8x16) ...) => (LoweredSimdSaturatingAdd(8x16|U8x16) ...)
++(SimdSub(8x16|U8x16) ...) => (LoweredSimdSub8x16 ...)
++(SimdSaturatingSub(8x16|U8x16) ...) => (LoweredSimdSaturatingSub(8x16|U8x16) ...)
++(SimdAnd(8x16|U8x16) ...) => (LoweredSimdAnd8x16 ...)
++(SimdAnd(16x8|U16x8) ...) => (LoweredSimdAnd16x8 ...)
++(SimdOr(8x16|U8x16) ...) => (LoweredSimdOr8x16 ...)
++(SimdXor(8x16|U8x16) ...) => (LoweredSimdXor8x16 ...)
++(SimdMax(8x16|U8x16) ...) => (LoweredSimdMax(8x16|U8x16) ...)
++(SimdMin(8x16|U8x16) ...) => (LoweredSimdMin(8x16|U8x16) ...)
++(SimdExtractU8x16 ...) => (LoweredSimdExtractU8x16 ...)
++(SimdMovMaskByteU8x16 ...) => (LoweredSimdMovMaskByteU8x16 ...)
++(SimdShiftRight16x8 ...) => (LoweredSimdShiftRight16x8 ...)
++(SimdLookupU8x16 ...) => (LoweredSimdLookupU8x16 ...)
++(SimdAllZerosU8x16 ...) => (LoweredSimdAllZerosU8x16 ...)
++
+ // Atomic loads.  Other than preserving their ordering with respect to other loads, nothing special here.
+ (AtomicLoad8 ptr mem) => (MOVBatomicload ptr mem)
+ (AtomicLoad32 ptr mem) => (MOVLatomicload ptr mem)
+diff --git a/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go b/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
+index 606171947b..42b55a9fae 100644
+--- a/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
++++ b/src/cmd/compile/internal/ssa/_gen/AMD64Ops.go
+@@ -981,6 +981,69 @@ func init() {
+ 		{name: "LoweredPanicBoundsB", argLength: 3, aux: "Int64", reg: regInfo{inputs: []regMask{cx, dx}}, typ: "Mem", call: true}, // arg0=idx, arg1=len, arg2=mem, returns memory. AuxInt contains report code (see PanicBounds in generic.go).
+ 		{name: "LoweredPanicBoundsC", argLength: 3, aux: "Int64", reg: regInfo{inputs: []regMask{ax, cx}}, typ: "Mem", call: true}, // arg0=idx, arg1=len, arg2=mem, returns memory. AuxInt contains report code (see PanicBounds in generic.go).
+ 
++		// SIMD wrapping add u8x16.
++		// *arg0 = arg1 + arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdAdd8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD saturating add u8x16.
++		// *arg0 = arg1 + arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdSaturatingAddU8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD saturating add i8x16.
++		// *arg0 = arg1 + arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdSaturatingAdd8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD wrapping sub u8x16.
++		// *arg0 = arg1 - arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdSub8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD saturating sub u8x16.
++		// *arg0 = arg1 - arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdSaturatingSubU8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD saturating sub i8x16.
++		// *arg0 = arg1 - arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdSaturatingSub8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD and i8x16.
++		// *arg0 = arg1 & arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdAnd8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD or i8x16.
++		// *arg0 = arg1 | arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdOr8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD xor i8x16.
++		// *arg0 = arg1 ^ arg2. arg3=mem. returns memory.
++		{name: "LoweredSimdXor8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD max i8x16.
++		// *arg0 = max(arg1, arg2). arg3=mem. returns memory.
++		{name: "LoweredSimdMax8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD max u8x16.
++		// *arg0 = max(arg1, arg2). arg3=mem. returns memory.
++		{name: "LoweredSimdMaxU8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		// SIMD min i8x16.
++		// *arg0 = min(arg1, arg2). arg3=mem. returns memory.
++		{name: "LoweredSimdMin8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++		// SIMD min u8x16.
++		// *arg0 = min(arg1, arg2). arg3=mem. returns memory.
++		{name: "LoweredSimdMinU8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		{name: "LoweredSimdExtractU8x16", argLength: 5, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		{name: "LoweredSimdMovMaskByteU8x16", argLength: 2, reg: regInfo{inputs: []regMask{gpspsbg}, outputs: []regMask{gp}}, typ: "(Uint16,Mem)"},
++
++		{name: "LoweredSimdAnd16x8", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true},
++
++		{name: "LoweredSimdShiftRight16x8", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true},
++
++		{name: "LoweredSimdLookupU8x16", argLength: 4, reg: regInfo{inputs: []regMask{gpspsbg, gp, gp}}, typ: "Mem", faultOnNilArg0: true, hasSideEffects: true},
++
++		{name: "LoweredSimdAllZerosU8x16", argLength: 2, reg: regInfo{inputs: []regMask{gpspsbg}, outputs: []regMask{gp}}, typ: "(Bool,Mem)", faultOnNilArg0: true},
++
+ 		// Constant flag values. For any comparison, there are 5 possible
+ 		// outcomes: the three from the signed total order (<,==,>) and the
+ 		// three from the unsigned total order. The == cases overlap.
+diff --git a/src/cmd/compile/internal/ssa/rewriteAMD64.go b/src/cmd/compile/internal/ssa/rewriteAMD64.go
+index ba71189703..e1091d151c 100644
+--- a/src/cmd/compile/internal/ssa/rewriteAMD64.go
++++ b/src/cmd/compile/internal/ssa/rewriteAMD64.go
+@@ -1092,6 +1092,81 @@ func rewriteValueAMD64(v *Value) bool {
+ 	case OpSignExt8to64:
+ 		v.Op = OpAMD64MOVBQSX
+ 		return true
++	case OpSimdAdd8x16:
++		v.Op = OpAMD64LoweredSimdAdd8x16
++		return true
++	case OpSimdAddU8x16:
++		v.Op = OpAMD64LoweredSimdAdd8x16
++		return true
++	case OpSimdAllZerosU8x16:
++		v.Op = OpAMD64LoweredSimdAllZerosU8x16
++		return true
++	case OpSimdAnd16x8:
++		v.Op = OpAMD64LoweredSimdAnd16x8
++		return true
++	case OpSimdAnd8x16:
++		v.Op = OpAMD64LoweredSimdAnd8x16
++		return true
++	case OpSimdAndU16x8:
++		v.Op = OpAMD64LoweredSimdAnd16x8
++		return true
++	case OpSimdAndU8x16:
++		v.Op = OpAMD64LoweredSimdAnd8x16
++		return true
++	case OpSimdExtractU8x16:
++		v.Op = OpAMD64LoweredSimdExtractU8x16
++		return true
++	case OpSimdLookupU8x16:
++		v.Op = OpAMD64LoweredSimdLookupU8x16
++		return true
++	case OpSimdMax8x16:
++		v.Op = OpAMD64LoweredSimdMax8x16
++		return true
++	case OpSimdMaxU8x16:
++		v.Op = OpAMD64LoweredSimdMaxU8x16
++		return true
++	case OpSimdMin8x16:
++		v.Op = OpAMD64LoweredSimdMin8x16
++		return true
++	case OpSimdMinU8x16:
++		v.Op = OpAMD64LoweredSimdMinU8x16
++		return true
++	case OpSimdMovMaskByteU8x16:
++		v.Op = OpAMD64LoweredSimdMovMaskByteU8x16
++		return true
++	case OpSimdOr8x16:
++		v.Op = OpAMD64LoweredSimdOr8x16
++		return true
++	case OpSimdOrU8x16:
++		v.Op = OpAMD64LoweredSimdOr8x16
++		return true
++	case OpSimdSaturatingAdd8x16:
++		v.Op = OpAMD64LoweredSimdSaturatingAdd8x16
++		return true
++	case OpSimdSaturatingAddU8x16:
++		v.Op = OpAMD64LoweredSimdSaturatingAddU8x16
++		return true
++	case OpSimdSaturatingSub8x16:
++		v.Op = OpAMD64LoweredSimdSaturatingSub8x16
++		return true
++	case OpSimdSaturatingSubU8x16:
++		v.Op = OpAMD64LoweredSimdSaturatingSubU8x16
++		return true
++	case OpSimdShiftRight16x8:
++		v.Op = OpAMD64LoweredSimdShiftRight16x8
++		return true
++	case OpSimdSub8x16:
++		v.Op = OpAMD64LoweredSimdSub8x16
++		return true
++	case OpSimdSubU8x16:
++		v.Op = OpAMD64LoweredSimdSub8x16
++		return true
++	case OpSimdXor8x16:
++		v.Op = OpAMD64LoweredSimdXor8x16
++		return true
++	case OpSimdXorU8x16:
++		v.Op = OpAMD64LoweredSimdXor8x16
++		return true
+ 	case OpSlicemask:
+ 		return rewriteValueAMD64_OpSlicemask(v)
+ 	case OpSpectreIndex:

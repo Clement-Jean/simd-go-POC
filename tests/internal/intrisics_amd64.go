@@ -1,7 +1,7 @@
 package internal
 
 /*
-#cgo CFLAGS: -msse2 -msse3 -msse4.1
+#cgo CFLAGS: -msse2 -msse3 -msse4.1 -mssse3
 #include <stdint.h>
 #include <immintrin.h>
 #include <smmintrin.h>
@@ -30,6 +30,9 @@ __m128i max_epi8(__m128i a, __m128i b) { return _mm_max_epi8(a, b); }
 __m128i max_epu8(__m128i a, __m128i b) { return _mm_max_epu8(a, b); }
 __m128i min_epi8(__m128i a, __m128i b) { return _mm_min_epi8(a, b); }
 __m128i min_epu8(__m128i a, __m128i b) { return _mm_min_epu8(a, b); }
+__m128i alignr_epi8(__m128i a, __m128i b, int imm8) { return _mm_alignr_epi8(a, b, 15); }
+__m128i shuffle_epi8(__m128i a, __m128i b) { return _mm_shuffle_epi8(a, b); }
+int test_all_zeros(__m128i mask, __m128i a) { return _mm_test_all_zeros(mask, a); }
 */
 import "C"
 
@@ -102,3 +105,20 @@ func MmMinEpi8(v0, v1 M128I) M128I { return C.min_epi8(v0, v1) }
 
 // Compare packed unsigned 8-bit integers in a and b, and store packed minimum values in dst.
 func MmMinEpu8(v0, v1 M128I) M128I { return C.min_epu8(v0, v1) }
+
+// Concatenate 16-byte blocks in a and b into a 32-byte temporary result, shift the result right by imm8 bytes, and stores the low 16 bytes in dst.
+// /!\ imm8 is always 15, even if you pass another value.
+// this is because we apparently cannot pass an 8-bit immediate from Go.
+func MmAlignrEpi8(v0, v1 M128I, imm8 int) M128I { return C.alignr_epi8(v0, v1, C.int(imm8)) }
+
+// Shuffle packed 8-bit integers in a according to shuffle control mask in the corresponding 8-bit element of b, and store the results in dst.
+func MmShuffleEpi8(v0, v1 M128I) M128I { return C.shuffle_epi8(v0, v1) }
+
+// Compute the bitwise AND of 128 bits (representing integer data) in a and mask, and return 1 if the result is zero, otherwise return 0.
+func MmTestAllZeros(v0 M128I) bool {
+	_mask := MmSetrEpu8([16]uint8{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1})
+	if ok := C.test_all_zeros(_mask, v0); ok == 1 {
+		return true
+	}
+	return false
+}

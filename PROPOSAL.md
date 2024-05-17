@@ -22,7 +22,7 @@ The main goal of this proposal is to provide an alternative approach to designin
 
 This proposal mainly propose two things:
 
-- Adding a new kind of build tag that let user specify which SIMD ISA to use at compile time.
+- Adding a new kind of build tag that let the user specify which SIMD ISA to use at compile time.
 - Using compiler intrinsics to generate inline SIMD instructions in the code.
 
 ### Build Tag
@@ -32,7 +32,7 @@ For the first point, I was thinking about optional build tags like the following
 ```go
 //go:simd sse2
 ```
-``` go
+```go
 //go:simd neon
 ```
 ```go
@@ -47,11 +47,11 @@ Finally, having a the optional build tag would let the developer choose at compi
 
     $ go build -simd neon
 
-With this, we could take advantage of platform specific features and know at compile time the size of the vector registers (e.g. 128 or 256 bits). This would help us make better decisions for optimizations on the compiler side.
+With this, we could take advantage of platform specific features and know at compile time the size of the vector registers (e.g. 128, 256, or 512 bits). This would help us make better decisions for optimizations on the compiler side.
 
 ### Compiler Intrinsics
 
-The next crucial step would be to create a portable SIMD package that would rely on the compiler to generate SIMD instructions through compiler intrinsics. I demonstrated that this is feasible with a [POC](https://github.com/Clement-Jean/simd-go-POC). As of right now, it looks like the following (you can see more examples [here](https://github.com/Clement-Jean/simd-go-POC/blob/main/tests)):
+The next crucial step would be to create a portable SIMD package that would rely on the compiler to generate SIMD instructions through compiler intrinsics. I demonstrated that this is feasible with a [POC](https://github.com/Clement-Jean/simd-go-POC). As of right now, it looks like the following (you can see more examples [here](https://github.com/Clement-Jean/simd-go-POC/blob/main/examples), including UTF8 string validation):
 
 ```go
 package main
@@ -62,8 +62,8 @@ import (
 )
 
 func main() {
-    a := [16]uint8{...}
-    b := [16]uint8{...}
+    a := simd.Uint8x16{...}
+    b := simd.Uint8x16{...}
     c := simd.AddU8x16(a, b)
 
     fmt.Printf("%v\n", c)
@@ -72,13 +72,18 @@ func main() {
 
 And the `AddU8x16` gets lowered down to a `vector add` instruction after SSA lowering.
 
-There are a few things to note:
+### Notes
 
 - We can provide functions like `AddU8x16`, `AddU8x32`, etc. without changing the generics implementation. Other implementations like [Highway](https://github.com/google/highway/blob/87ab8b81c9b11d8e28c9ebbd593bef7c39f7a61d/hwy/ops/arm_neon-inl.h#L801), [Rust std::simd](https://doc.rust-lang.org/std/simd/prelude/struct.Simd.html), and [Zig @Vector](https://ziglang.org/documentation/master/#Vectors) rely on generics for the API. In Go, we do not have non-type parameter in generics, thus we cannot have something like `Simd[uint8, 16]`.
+
 - We also do not have a compile time `Sizeof` which could have help us have:
     ```go
     type Simd[T SupportedSimdTypes] = [VectorRegisterSize / SizeofInBits(T)]T
     ```
+
+## Philosophy
+
+It is important to understand that this proposal is not an abstraction of SIMD features. Such an abstraction could create noticable performance difference between ISA. That's why we are trying to avoid it. This means that if an operation is not available on an ISA, we simply don't provide it. Each intrinsic should only have 1 underlying instruction, not a sequence of instructions.
 
 ## Challenges to Overcome
 
@@ -92,7 +97,7 @@ type Uint8x16 [16]uint8
 //...
 ```
 
-These types should not be indexable and only instantiable through functions like `Splat8x16`, `Set8x16`, ... The compiler would then promote these special types (or custom pointers on array passed to simd functions) to vector registers. This would remove all the LD/ST dance and memory allocation that I have in my POC and thus make everything a whole lot faster.
+These types should not be indexable and only instantiable through init functions like `Splat8x16`, `Load8x16`, etc. The compiler would then promote these special types to vector registers. This would remove all the LD/ST dance and memory allocation that I have in my POC and thus make everything a lot faster.
 
 In the end the previous code snippet could look like this:
 
@@ -105,32 +110,32 @@ import (
 )
 
 func main() {
-    a := simd.SplatU8x16(...)
-    b := simd.SplatU8x16(...)
+    a := simd.SplatU8x16(1)
+    b := simd.LoadU8x16([16]uint8{...})
     c := simd.AddU8x16(a, b)
 
     fmt.Printf("%v\n", c)
 }
 ```
 
-- Naming these functions is not always easy. For example, NEON has instructions called `VMIN` and `UMINV`. The former returns a vector of min elements, and the latter reduce to the minimum in a given vector. As we don't have function overload, we will need to find a way to name them appropriately.
+- Naming these functions is not always easy. For example, NEON has instructions called `VMIN` and `UMINV`. The former returns a vector of min elements, and the latter reduce to the minimum in a given vector. As we don't have function overloads, we will need to find a way to name them appropriately.
 
 I believe we should try to make the horizontal operations more verbose (e.g. `ReduceMin8x16`) and promote the vertical ones (e.g. `Min8x16`). For the example of `VMIN` and `UMINV`, the latter does not even seem to exist in SSE2 whereas the first one does.
 
-## Scope
+- The current POC did not implement the concept of Masks. This is an important concept but also a tricky one to implement without proper compiler support. After discussion with [Jan Wassenberg](https://github.com/jan-wassenberg) (author of [Highway](https://github.com/google/highway)), I realized that some platforms do not treat masks in the same way. Here a summary:
 
-This proposal focuses on adding the following set of intrinsics:
+   - on NEON, SSE4, and AVX2: 1 bit per bit of the vector.
+   - on SVE: 1 bit per byte of vector (variable vector size).
+   - on AVX-512, and RVV: 1 bit per lane.
+   - AVX-512 has a separate register file for masks.
 
-- Initialization/Load (splat, shuffle)
-- Arithmetic (wrapping and saturating)
-- Bit (and, or, xor, shl, shr)
-- Table Lookup
+- Some operations need parameters that are known at compile time and within a certain range. For example `SSHR` (shift right) on NEON takes an immediate `n` that need to be restricted between 1 and 8 (see [vshr_n_s8](https://developer.arm.com/architectures/instruction-sets/intrinsics/vshr_n_s8)). I ran into some problems where during the build of the compiler or, the `n` would resolve to 0 (default value of int passed as param) and it would crash the program.
 
-more can be added later but we are trying to be realistic. We can discuss what is to be included.
+I believe we could have some way to check at compile time these values are within a certain range. Like a [static_assert](https://en.cppreference.com/w/cpp/language/static_assert) in C++ or checks on the AST.
 
 ## Why is it Important?
 
-Without SIMD, we are missing on a lot of optimizations. Here is a non exhaustive list of concrete things that could improve performance in daily life scenarios:
+Without SIMD, we are missing on a lot of potential optimizations. Here is a non exhaustive list of concrete things that could improve performance in daily life scenarios:
 
 - [simdjson](https://github.com/simdjson/simdjson)
 - [Decoding Billions of Integers Per Second Through Vectorization](https://people.csail.mit.edu/jshun/6886-s19/lectures/lecture19-1.pdf)

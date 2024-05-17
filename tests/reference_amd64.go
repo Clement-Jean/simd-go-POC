@@ -149,3 +149,45 @@ func referenceMinU8x16(a, b [16]uint8) (result [16]uint8) {
 	internal.MmStoreuSu128((*internal.Uint8)(unsafe.Pointer(&result[0])), _result)
 	return result
 }
+
+func referenceExtract8x16(a, b [16]int8, imm8 int) (result [16]int8) {
+	_a := internal.MmSetrEpi8(a)
+	_b := internal.MmSetrEpi8(b)
+	_result := internal.MmAlignrEpi8(_b, _a, imm8)
+	internal.MmStoreuSi128((*internal.Int8)(unsafe.Pointer(&result[0])), _result)
+	return result
+}
+
+func referenceExtractU8x16(a, b [16]uint8, imm8 int) (result [16]uint8) {
+	_a := internal.MmSetrEpu8(a)
+	_b := internal.MmSetrEpu8(b)
+	_result := internal.MmAlignrEpi8(_b, _a, imm8)
+	internal.MmStoreuSu128((*internal.Uint8)(unsafe.Pointer(&result[0])), _result)
+	return result
+}
+
+func referenceLookup8x16(a [16]int8, b [16]uint8) (result [16]int8) {
+	_a := internal.MmSetrEpi8(a)
+	_b := internal.MmSetrEpu8(b)
+	_result := internal.MmShuffleEpi8(_a, _b)
+	internal.MmStoreuSi128((*internal.Int8)(unsafe.Pointer(&result[0])), _result)
+	return result
+}
+
+func referenceLookupU8x16(a, b [16]uint8) (result [16]uint8) {
+	_a := internal.MmSetrEpu8(a)
+	_b := internal.MmSetrEpu8(b)
+	_result := internal.MmShuffleEpi8(_a, _b)
+	internal.MmStoreuSu128((*internal.Uint8)(unsafe.Pointer(&result[0])), _result)
+	return result
+}
+
+func referenceAllZeros8x16(a [16]int8) bool {
+	_a := internal.MmSetrEpi8(a)
+	return internal.MmTestAllZeros(_a)
+}
+
+func referenceAllZerosU8x16(a [16]uint8) bool {
+	_a := internal.MmSetrEpu8(a)
+	return internal.MmTestAllZeros(_a)
+}

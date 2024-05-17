@@ -104,3 +104,19 @@ func VminvqS8(r *Int8, v0 *Int8x16)
 //go:linkname VminvqU8 VminvqU8
 //go:noescape
 func VminvqU8(r *Uint8, v0 *Uint8x16)
+
+//go:linkname VextqS8 VextqS8
+//go:noescape
+func VextqS8(r, v0, v1 *Int8x16)
+
+//go:linkname VextqU8 VextqU8
+//go:noescape
+func VextqU8(r, v0, v1 *Uint8x16)
+
+//go:linkname Vqtbl1qS8 Vqtbl1qS8
+//go:noescape
+func Vqtbl1qS8(r, v0 *Int8x16, v1 *Uint8x16)
+
+//go:linkname Vqtbl1qU8 Vqtbl1qU8
+//go:noescape
+func Vqtbl1qU8(r, v0, v1 *Uint8x16)
