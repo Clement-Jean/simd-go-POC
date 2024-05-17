@@ -32,6 +32,8 @@ func TestMaxU8x16(t *testing.T) {
 		got := simd.MaxU8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}

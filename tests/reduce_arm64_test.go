@@ -25,6 +25,7 @@ func TestReduceMax8x16(t *testing.T) {
 		expected := referenceReduceMax8x16(test.a)
 
 		if expected != got {
+			t.Logf("a = %v\n", test.a)
 			t.Fatalf("%v: expected %d, got %d\n", test.a, expected, got)
 		}
 	}
@@ -50,6 +51,7 @@ func TestReduceMin8x16(t *testing.T) {
 		expected := referenceReduceMin8x16(test.a)
 
 		if expected != got {
+			t.Logf("a = %v\n", test.a)
 			t.Fatalf("%v: expected %d, got %d\n", test.a, expected, got)
 		}
 	}

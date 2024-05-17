@@ -32,6 +32,8 @@ func TestAnd8x16(t *testing.T) {
 		got := simd.And8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -61,6 +63,8 @@ func TestAndU8x16(t *testing.T) {
 		got := simd.AndU8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -90,6 +94,8 @@ func TestOr8x16(t *testing.T) {
 		got := simd.Or8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -119,6 +125,8 @@ func TestOrU8x16(t *testing.T) {
 		got := simd.OrU8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -148,6 +156,8 @@ func TestXor8x16(t *testing.T) {
 		got := simd.Xor8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -177,6 +187,8 @@ func TestXorU8x16(t *testing.T) {
 		got := simd.XorU8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}

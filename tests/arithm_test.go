@@ -37,6 +37,8 @@ func TestAdd8x16(t *testing.T) {
 		got := simd.Add8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -66,6 +68,8 @@ func TestAddU8x16(t *testing.T) {
 		got := simd.AddU8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -99,6 +103,8 @@ func TestSaturatingAdd8x16(t *testing.T) {
 		got := simd.SaturatingAdd8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -128,6 +134,8 @@ func TestSaturatingAddU8x16(t *testing.T) {
 		got := simd.SaturatingAddU8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -161,6 +169,8 @@ func TestSub8x16(t *testing.T) {
 		got := simd.Sub8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -190,6 +200,8 @@ func TestSubU8x16(t *testing.T) {
 		got := simd.SubU8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -223,6 +235,8 @@ func TestSaturatingSub8x16(t *testing.T) {
 		got := simd.SaturatingSub8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -252,6 +266,8 @@ func TestSaturatingSubU8x16(t *testing.T) {
 		got := simd.SaturatingSubU8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}

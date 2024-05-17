@@ -31,6 +31,8 @@ func TestMax8x16(t *testing.T) {
 		got := simd.Max8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -60,6 +62,8 @@ func TestMin8x16(t *testing.T) {
 		got := simd.Min8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -85,6 +89,7 @@ func TestAllZerosU8x16(t *testing.T) {
 		got := simd.AllZerosU8x16(test.a)
 
 		if expected != got {
+			t.Logf("a = %v\n", test.a)
 			t.Fatalf("expected %t, got %t\n", expected, got)
 		}
 	}
@@ -110,6 +115,7 @@ func TestAllZeros8x16(t *testing.T) {
 		got := simd.AllZeros8x16(test.a)
 
 		if expected != got {
+			t.Logf("a = %v\n", test.a)
 			t.Fatalf("expected %t, got %t\n", expected, got)
 		}
 	}

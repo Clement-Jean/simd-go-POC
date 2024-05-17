@@ -23,6 +23,7 @@ func TestShiftRight8x16(t *testing.T) {
 		got := simd.ShiftRight8x16(test.a, 4)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -43,6 +44,7 @@ func TestShiftRightU8x16(t *testing.T) {
 		got := simd.ShiftRightU8x16(test.a, 4)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}

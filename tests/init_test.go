@@ -32,6 +32,8 @@ func TestExtract8x16(t *testing.T) {
 		got := simd.Extract8x16(test.a, test.b, 15)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -61,6 +63,8 @@ func TestExtractU8x16(t *testing.T) {
 		got := simd.ExtractU8x16(test.a, test.b, 15)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -90,6 +94,8 @@ func TestLookup8x16(t *testing.T) {
 		got := simd.Lookup8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
@@ -119,6 +125,8 @@ func TestLookupU8x16(t *testing.T) {
 		got := simd.LookupU8x16(test.a, test.b)
 
 		if !slices.Equal(expected[:], got[:]) {
+			t.Logf("a = %v\n", test.a)
+			t.Logf("b = %v\n", test.b)
 			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
