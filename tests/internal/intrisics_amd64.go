@@ -17,6 +17,14 @@ __m128i setr_epi8(int8_t a, int8_t b, int8_t c, int8_t d, int8_t e, int8_t f, in
    return _mm_setr_epi8(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
 }
 
+__m128i setr_epu16(uint16_t a, uint16_t b, uint16_t c, uint16_t d, uint16_t e, uint16_t f, uint16_t g, uint16_t h) {
+   return _mm_setr_epi16(a, b, c, d, e, f, g, h);
+}
+
+__m128i setr_epi16(int16_t a, int16_t b, int16_t c, int16_t d, int16_t e, int16_t f, int16_t g, int16_t h) {
+   return _mm_setr_epi16(a, b, c, d, e, f, g, h);
+}   
+
 __m128i add_epi8(__m128i a, __m128i b) { return _mm_add_epi8(a, b); }
 __m128i adds_epi8(__m128i a, __m128i b) { return _mm_adds_epi8(a, b); }
 __m128i adds_epu8(__m128i a, __m128i b) { return _mm_adds_epu8(a, b); }
@@ -39,8 +47,12 @@ import "C"
 // typedef uchar uint8_t;
 type Uint8 = C.uint8_t
 
+type Uint16 = C.uint16_t
+
 // typedef char int8_t;
 type Int8 = C.int8_t
+
+type Int16 = C.int16_t
 
 // typedef longlong __m128i __attribute__((__vector_size__(16), __aligned__(16)));
 type M128I = C.__m128i
@@ -66,6 +78,21 @@ func MmSetrEpi8(a [16]int8) M128I {
 		(Int8)(a[12]), (Int8)(a[13]), (Int8)(a[14]), (Int8)(a[15]),
 	)
 }
+
+func MmSetrEpu16(a [8]uint16) M128I {
+	return C.setr_epu16(
+		(Uint16)(a[0]), (Uint16)(a[1]), (Uint16)(a[2]), (Uint16)(a[3]),
+		(Uint16)(a[4]), (Uint16)(a[5]), (Uint16)(a[6]), (Uint16)(a[7]),
+	)
+}
+
+func MmSetrEpi16(a [8]int16) M128I {
+	return C.setr_epi16(
+		(Int16)(a[0]), (Int16)(a[1]), (Int16)(a[2]), (Int16)(a[3]),
+		(Int16)(a[4]), (Int16)(a[5]), (Int16)(a[6]), (Int16)(a[7]),
+	)
+}
+
 
 // Add packed 8-bit integers in "a" and "b", and store the results in "dst".
 func MmAddEpi8(v0, v1 M128I) M128I { return C.add_epi8(v0, v1) }
