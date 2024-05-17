@@ -34,6 +34,8 @@ __m128i subs_epu8(__m128i a, __m128i b) { return _mm_subs_epu8(a, b); }
 __m128i and_si128(__m128i a, __m128i b) { return _mm_and_si128(a, b); }
 __m128i or_si128(__m128i a, __m128i b) { return _mm_or_si128(a, b); }
 __m128i xor_si128(__m128i a, __m128i b) { return _mm_xor_si128(a, b); }
+__m128i slli_epi16(__m128i a, int imm8) { return _mm_slli_epi16(a, 4); }
+__m128i srli_epi16(__m128i a, int imm8) { return _mm_srli_epi16(a, 4); }  
 __m128i max_epi8(__m128i a, __m128i b) { return _mm_max_epi8(a, b); }
 __m128i max_epu8(__m128i a, __m128i b) { return _mm_max_epu8(a, b); }
 __m128i min_epi8(__m128i a, __m128i b) { return _mm_min_epi8(a, b); }
@@ -120,6 +122,12 @@ func MmOrSi128(v0, v1 M128I) M128I { return C.or_si128(v0, v1) }
 
 // Compute the bitwise Xor of 128 bits (representing integer data) in a and b, and store the result in dst.
 func MmXorSi128(v0, v1 M128I) M128I { return C.xor_si128(v0, v1) }
+
+// Shift packed 16-bit integers in a left by count while shifting in zeros, and store the result in dst.
+func MmSlliEpi16(v0 M128I, imm8 uint) M128I { return C.slli_epi16(v0, C.int(imm8)) }
+
+// Shift packed 16-bit integers in a right by count while shifting in zeros, and store the result in dst.
+func MmSrliEpi16(v0 M128I, imm8 uint) M128I { return C.srli_epi16(v0, C.int(imm8)) }
 
 // Compare packed signed 8-bit integers in a and b, and store packed maximum values in dst.
 func MmMaxEpi8(v0, v1 M128I) M128I { return C.max_epi8(v0, v1) }

@@ -134,6 +134,20 @@ func referenceXorU8x16(a, b [16]uint8) (result [16]uint8) {
 	return result
 }
 
+func referenceShiftRight16x8(a [8]int16, n uint) (result [8]int16) {
+	_a := internal.MmSetrEpi16(a)
+	_result := internal.MmSrliEpi16(_a, n)
+	internal.MmStoreuSi128((*internal.Int8)(unsafe.Pointer(&result[0])), _result)
+	return result
+}
+
+func referenceShiftRightU16x8(a [8]uint16, n uint) (result [8]uint16) {
+	_a := internal.MmSetrEpu16(a)
+	_result := internal.MmSrliEpi16(_a, n)
+	internal.MmStoreuSu128((*internal.Uint8)(unsafe.Pointer(&result[0])), _result)
+	return result
+}
+
 func referenceMax8x16(a, b [16]int8) (result [16]int8) {
 	_a := internal.MmSetrEpi8(a)
 	_b := internal.MmSetrEpi8(b)
