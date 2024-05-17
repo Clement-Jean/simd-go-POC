@@ -73,6 +73,14 @@ func VeorqS8(r, v0, v1 *Int8x16)
 //go:noescape
 func VeorqU8(r, v0, v1 *Uint8x16)
 
+//go:linkname VshrqnS8 VshrqnS8
+//go:noescape
+func VshrqnS8(r, v0 *Int8x16, n uint)
+
+//go:linkname VshrqnU8 VshrqnU8
+//go:noescape
+func VshrqnU8(r, v0 *Uint8x16, n uint)
+
 //go:linkname VmaxqS8 VmaxqS8
 //go:noescape
 func VmaxqS8(r, v0, v1 *Int8x16)

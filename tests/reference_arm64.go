@@ -132,6 +132,27 @@ func referenceXorU8x16(a, b [16]uint8) (result [16]uint8) {
 	return result
 }
 
+func referenceShiftRight8x16(a [16]int8, n uint) (result [16]int8) {
+	// the current implementation of ShiftRight is the logical shift right
+	// this means that the underlying C intrinsic is vshrq_n_u8 and not
+	// vshrq_n_s8
+	internal.VshrqnU8(
+		(*internal.Uint8x16)(unsafe.Pointer(&result)),
+		(*internal.Uint8x16)(unsafe.Pointer(&a)),
+		n,
+	)
+	return result
+}
+
+func referenceShiftRightU8x16(a [16]uint8, n uint) (result [16]uint8) {
+	internal.VshrqnU8(
+		(*internal.Uint8x16)(unsafe.Pointer(&result)),
+		(*internal.Uint8x16)(unsafe.Pointer(&a)),
+		n,
+	)
+	return result
+}
+
 func referenceMax8x16(a, b [16]int8) (result [16]int8) {
 	internal.VmaxqS8(
 		(*internal.Int8x16)(unsafe.Pointer(&result)),

@@ -4,9 +4,9 @@ package tests
 
 import (
 	"math"
-	"testing"
-
 	"simd"
+	"slices"
+	"testing"
 )
 
 func TestAdd8x16(t *testing.T) {
@@ -36,10 +36,8 @@ func TestAdd8x16(t *testing.T) {
 		expected := referenceAdd8x16(test.a, test.b)
 		got := simd.Add8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -67,10 +65,8 @@ func TestAddU8x16(t *testing.T) {
 		expected := referenceAddU8x16(test.a, test.b)
 		got := simd.AddU8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -102,10 +98,8 @@ func TestSaturatingAdd8x16(t *testing.T) {
 		expected := referenceSaturatingAdd8x16(test.a, test.b)
 		got := simd.SaturatingAdd8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -133,10 +127,8 @@ func TestSaturatingAddU8x16(t *testing.T) {
 		expected := referenceSaturatingAddU8x16(test.a, test.b)
 		got := simd.SaturatingAddU8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -168,10 +160,8 @@ func TestSub8x16(t *testing.T) {
 		expected := referenceSub8x16(test.a, test.b)
 		got := simd.Sub8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -199,10 +189,8 @@ func TestSubU8x16(t *testing.T) {
 		expected := referenceSubU8x16(test.a, test.b)
 		got := simd.SubU8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -234,10 +222,8 @@ func TestSaturatingSub8x16(t *testing.T) {
 		expected := referenceSaturatingSub8x16(test.a, test.b)
 		got := simd.SaturatingSub8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -265,10 +251,8 @@ func TestSaturatingSubU8x16(t *testing.T) {
 		expected := referenceSaturatingSubU8x16(test.a, test.b)
 		got := simd.SaturatingSubU8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }

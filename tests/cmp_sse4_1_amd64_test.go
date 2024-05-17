@@ -30,10 +30,8 @@ func TestMax8x16(t *testing.T) {
 		expected := referenceMax8x16(test.a, test.b)
 		got := simd.Max8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %v, got %v\n", expected, got)
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -61,10 +59,8 @@ func TestMin8x16(t *testing.T) {
 		expected := referenceMin8x16(test.a, test.b)
 		got := simd.Min8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %v, got %v\n", expected, got)
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }

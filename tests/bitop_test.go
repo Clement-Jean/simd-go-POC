@@ -3,9 +3,9 @@
 package tests
 
 import (
-	"testing"
-
 	"simd"
+	"slices"
+	"testing"
 )
 
 func TestAnd8x16(t *testing.T) {
@@ -31,10 +31,8 @@ func TestAnd8x16(t *testing.T) {
 		expected := referenceAnd8x16(test.a, test.b)
 		got := simd.And8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -62,10 +60,8 @@ func TestAndU8x16(t *testing.T) {
 		expected := referenceAndU8x16(test.a, test.b)
 		got := simd.AndU8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -93,10 +89,8 @@ func TestOr8x16(t *testing.T) {
 		expected := referenceOr8x16(test.a, test.b)
 		got := simd.Or8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -124,10 +118,8 @@ func TestOrU8x16(t *testing.T) {
 		expected := referenceOrU8x16(test.a, test.b)
 		got := simd.OrU8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -155,10 +147,8 @@ func TestXor8x16(t *testing.T) {
 		expected := referenceXor8x16(test.a, test.b)
 		got := simd.Xor8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
@@ -186,10 +176,8 @@ func TestXorU8x16(t *testing.T) {
 		expected := referenceXorU8x16(test.a, test.b)
 		got := simd.XorU8x16(test.a, test.b)
 
-		for i := 0; i < len(got); i++ {
-			if expected[i] != got[i] {
-				t.Fatalf("expected %d at index %d, got %d\n", expected[i], i, got[i])
-			}
+		if !slices.Equal(expected[:], got[:]) {
+			t.Fatalf("expected %v, got %v\n", expected, got)
 		}
 	}
 }
