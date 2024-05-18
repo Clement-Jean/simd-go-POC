@@ -118,11 +118,15 @@ func main() {
 }
 ```
 
+- A lot of intstructions on arm (and I suppose on other ISAs) are missing. The current POC is using constants to encode these.
+
+I believe we should avoid having to use constants. We could implement them along the way with the implementation of intrinsics.
+
 - Naming these functions is not always easy. For example, NEON has instructions called `VMIN` and `UMINV`. The former returns a vector of min elements, and the latter reduce to the minimum in a given vector. As we don't have function overloads, we will need to find a way to name them appropriately.
 
 I believe we should try to make the horizontal operations more verbose (e.g. `ReduceMin8x16`) and promote the vertical ones (e.g. `Min8x16`). For the example of `VMIN` and `UMINV`, the latter does not even seem to exist in SSE2 whereas the first one does.
 
-- The current POC did not implement the concept of Masks. This is an important concept but also a tricky one to implement without proper compiler support. After discussion with [Jan Wassenberg](https://github.com/jan-wassenberg) (author of [Highway](https://github.com/google/highway)), I realized that some platforms do not treat masks in the same way. Here a summary:
+- The current POC did not implement the concept of Masks. This is an important concept but also a tricky one to implement without proper compiler support at the moment. After discussion with [Jan Wassenberg](https://github.com/jan-wassenberg) (author of [Highway](https://github.com/google/highway)), I realized that some platforms do not treat masks in the same way. Here a summary:
 
    - on NEON, SSE4, and AVX2: 1 bit per bit of the vector.
    - on SVE: 1 bit per byte of vector (variable vector size).
