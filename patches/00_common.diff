@@ -1,5 +1,5 @@
 diff --git a/src/cmd/compile/internal/ssagen/ssa.go b/src/cmd/compile/internal/ssagen/ssa.go
-index c794d6ffd9..a3417cbd2b 100644
+index c794d6ffd9..543a425f57 100644
 --- a/src/cmd/compile/internal/ssagen/ssa.go
 +++ b/src/cmd/compile/internal/ssagen/ssa.go
 @@ -4287,6 +4287,170 @@ func InitTables() {
@@ -155,9 +155,9 @@ index c794d6ffd9..a3417cbd2b 100644
 +			return nil
 +		},
 +		sys.ARM64)
-+	addF("runtime/internal/simd", "MovMaskByteU8x16",
++	addF("runtime/internal/simd", "MoveByteMaskU8x16",
 +		func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value {
-+			v := s.newValue2(ssa.OpSimdMovMaskByteU8x16, types.NewTuple(types.Types[types.TUINT16], types.TypeMem), args[0], s.mem())
++			v := s.newValue2(ssa.OpSimdMoveByteMaskU8x16, types.NewTuple(types.Types[types.TUINT16], types.TypeMem), args[0], s.mem())
 +			s.vars[memVar] = s.newValue1(ssa.OpSelect1, types.TypeMem, v)
 +			return s.newValue1(ssa.OpSelect0, types.Types[types.TUINT16], v)
 +		},
@@ -222,8 +222,8 @@ index c794d6ffd9..a3417cbd2b 100644
 +	alias("simd", "shiftRightU16x8", "runtime/internal/simd", "ShiftRight16x8", sys.ArchARM64, sys.ArchAMD64)
 +	alias("simd", "splat8x16", "runtime/internal/simd", "Splat8x16", sys.ArchARM64)
 +	alias("simd", "splatU8x16", "runtime/internal/simd", "Splat8x16", sys.ArchARM64)
-+	alias("simd", "movMaskByte8x16", "runtime/internal/simd", "MovMaskByteU8x16", sys.ArchAMD64)
-+	alias("simd", "movMaskByteU8x16", "runtime/internal/simd", "MovMaskByteU8x16", sys.ArchAMD64)
++	alias("simd", "moveByteMask8x16", "runtime/internal/simd", "MoveByteMaskU8x16", sys.ArchAMD64)
++	alias("simd", "moveByteMaskU8x16", "runtime/internal/simd", "MoveByteMaskU8x16", sys.ArchAMD64)
 +	alias("simd", "allZerosU8x16", "runtime/internal/simd", "AllZerosU8x16", sys.ArchAMD64)
 +	alias("simd", "allZeros8x16", "runtime/internal/simd", "AllZerosU8x16", sys.ArchAMD64)
 +
@@ -231,7 +231,7 @@ index c794d6ffd9..a3417cbd2b 100644
  
  	// Note: these are disabled by flag_race in findIntrinsic below.
 diff --git a/src/cmd/compile/internal/ssa/opGen.go b/src/cmd/compile/internal/ssa/opGen.go
-index c552832520..421a383960 100644
+index c552832520..42460b66cc 100644
 --- a/src/cmd/compile/internal/ssa/opGen.go
 +++ b/src/cmd/compile/internal/ssa/opGen.go
 @@ -1052,6 +1052,25 @@ const (
@@ -252,7 +252,7 @@ index c552832520..421a383960 100644
 +	OpAMD64LoweredSimdMin8x16
 +	OpAMD64LoweredSimdMinU8x16
 +	OpAMD64LoweredSimdExtractU8x16
-+	OpAMD64LoweredSimdMovMaskByteU8x16
++	OpAMD64LoweredSimdMoveByteMaskU8x16
 +	OpAMD64LoweredSimdAnd16x8
 +	OpAMD64LoweredSimdShiftRight16x8
 +	OpAMD64LoweredSimdLookupU8x16
@@ -324,8 +324,8 @@ index c552832520..421a383960 100644
 +	OpSimdShiftRight8x16
 +	OpSimdShiftRight16x8
 +	OpSimdSplat8x16
-+	OpSimdMovMaskByte8x16
-+	OpSimdMovMaskByteU8x16
++	OpSimdMoveByteMask8x16
++	OpSimdMoveByteMaskU8x16
 +	OpSimdAllZerosU8x16
  	OpAtomicLoad8
  	OpAtomicLoad32
@@ -518,7 +518,7 @@ index c552832520..421a383960 100644
 +		},
 +	},
 +	{
-+		name:   "LoweredSimdMovMaskByteU8x16",
++		name:   "LoweredSimdMoveByteMaskU8x16",
 +		argLen: 2,
 +		reg: regInfo{
 +			inputs: []inputInfo{
@@ -1063,12 +1063,12 @@ index c552832520..421a383960 100644
 +		generic:        true,
 +	},
 +	{
-+		name:    "SimdMovMaskByte8x16",
++		name:    "SimdMoveByteMask8x16",
 +		argLen:  2,
 +		generic: true,
 +	},
 +	{
-+		name:    "SimdMovMaskByteU8x16",
++		name:    "SimdMoveByteMaskU8x16",
 +		argLen:  2,
 +		generic: true,
 +	},
@@ -1081,7 +1081,7 @@ index c552832520..421a383960 100644
  		name:    "AtomicLoad8",
  		argLen:  2,
 diff --git a/src/cmd/compile/internal/ssa/_gen/genericOps.go b/src/cmd/compile/internal/ssa/_gen/genericOps.go
-index 69eb48ce44..3f9cb2d92b 100644
+index 69eb48ce44..1a85ba4ba5 100644
 --- a/src/cmd/compile/internal/ssa/_gen/genericOps.go
 +++ b/src/cmd/compile/internal/ssa/_gen/genericOps.go
 @@ -586,6 +586,40 @@ var genericOps = []opData{
@@ -1118,8 +1118,8 @@ index 69eb48ce44..3f9cb2d92b 100644
 +	{name: "SimdShiftRight8x16", argLength: 4, typ: "(Mem)", hasSideEffects: true},
 +	{name: "SimdShiftRight16x8", argLength: 4, typ: "(Mem)", hasSideEffects: true},
 +	{name: "SimdSplat8x16", argLength: 3, typ: "(Mem)", hasSideEffects: true},
-+	{name: "SimdMovMaskByte8x16", argLength: 2, typ: "(Uint16,Mem)"},
-+	{name: "SimdMovMaskByteU8x16", argLength: 2, typ: "(Uint16,Mem)"},
++	{name: "SimdMoveByteMask8x16", argLength: 2, typ: "(Uint16,Mem)"},
++	{name: "SimdMoveByteMaskU8x16", argLength: 2, typ: "(Uint16,Mem)"},
 +	{name: "SimdAllZerosU8x16", argLength: 2, typ: "(Bool,Mem)"},
 +
  	// Atomic operations used for semantically inlining sync/atomic and
