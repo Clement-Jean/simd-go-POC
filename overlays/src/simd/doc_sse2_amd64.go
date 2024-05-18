@@ -133,13 +133,13 @@ func MinU8x16(a, b Uint8x16) (out Uint8x16) {
 	return out
 }
 
-func movMaskByteU8x16(a *Uint8x16) uint16
-func movMaskByte8x16(a *Int8x16) uint16
+func moveByteMaskU8x16(a *Uint8x16) uint16
+func moveByteMask8x16(a *Int8x16) uint16
 
-func MovMaskByteU8x16(a Uint8x16) uint16 {
-	return movMaskByteU8x16(&a)
+func MoveByteMaskU8x16(a Uint8x16) uint16 {
+	return moveByteMaskU8x16(&a)
 }
 
-func MovMaskByte8x16(a Int8x16) uint16 {
-	return movMaskByte8x16(&a)
+func MoveByteMask8x16(a Int8x16) uint16 {
+	return moveByteMask8x16(&a)
 }

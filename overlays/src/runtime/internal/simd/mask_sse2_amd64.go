@@ -2,4 +2,4 @@
 
 package simd
 
-func MovMaskByteU8x16(a *[16]uint8) uint16
+func MoveByteMaskU8x16(a *[16]uint8) uint16

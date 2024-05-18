@@ -222,12 +222,12 @@ func referenceAllZerosU8x16(a [16]uint8) bool {
 	return internal.MmTestAllZeros(_a)
 }
 
-func referenceMoveMaskByte8x16(a [16]int8) uint16 {
+func referenceMoveByteMask8x16(a [16]int8) uint16 {
 	_a := internal.MmSetrEpi8(a)
 	return internal.MmMoveMaskEpi8(_a)
 }
 
-func referenceMoveMaskByteU8x16(a [16]uint8) uint16 {
+func referenceMoveByteMaskU8x16(a [16]uint8) uint16 {
 	_a := internal.MmSetrEpu8(a)
 	return uint16(internal.MmMoveMaskEpi8(_a))
 }

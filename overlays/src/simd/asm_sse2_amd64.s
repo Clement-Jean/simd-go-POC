@@ -56,8 +56,8 @@ TEXT ·maxU8x16(SB),NOSPLIT,$0
 TEXT ·minU8x16(SB),NOSPLIT,$0
 	JMP	runtime∕internal∕simd·MinU8x16(SB)
 
-TEXT ·movMaskByteU8x16(SB),NOSPLIT,$0
-	JMP	runtime∕internal∕simd·MovMaskByteU8x16(SB)
+TEXT ·moveByteMaskU8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·MoveByteMaskU8x16(SB)
 
-TEXT ·movMaskByte8x16(SB),NOSPLIT,$0
-	JMP	runtime∕internal∕simd·MoveMaskByteU8x16(SB)
+TEXT ·moveByteMask8x16(SB),NOSPLIT,$0
+	JMP	runtime∕internal∕simd·MoveByteMaskU8x16(SB)

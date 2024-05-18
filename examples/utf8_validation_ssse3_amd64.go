@@ -12,8 +12,8 @@ func validString(in string) bool {
 	for ; processedLen+16 <= len(in); processedLen += 16 {
 		currBlock := *(*simd.Uint8x16)([]byte(in[processedLen:]))
 
-		if simd.MovMaskByteU8x16(currBlock) < 0x80 {
-			if simd.MovMaskByteU8x16(prevIncomplete) != 0 {
+		if simd.MoveByteMaskU8x16(currBlock) < 0x80 {
+			if simd.MoveByteMaskU8x16(prevIncomplete) != 0 {
 				return false
 			}
 			prevIncomplete = simd.Uint8x16{}
@@ -49,5 +49,5 @@ func validString(in string) bool {
 		}
 		return utf8.ValidString(in[processedLen:])
 	}
-	return simd.MovMaskByteU8x16(prevIncomplete) == 0
+	return simd.MoveByteMaskU8x16(prevIncomplete) == 0
 }

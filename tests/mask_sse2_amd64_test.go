@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestMoveMaskByte8x16(t *testing.T) {
+func TestMoveByteMask8x16(t *testing.T) {
 	tests := []struct {
 		a [16]int8
 	}{
@@ -17,8 +17,8 @@ func TestMoveMaskByte8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceMoveMaskByte8x16(test.a)
-		got := simd.MovMaskByte8x16(test.a)
+		expected := referenceMoveByteMask8x16(test.a)
+		got := simd.MoveByteMask8x16(test.a)
 
 		if expected != got {
 			t.Fatalf("expected %d, got %d\n", expected, got)
@@ -26,7 +26,7 @@ func TestMoveMaskByte8x16(t *testing.T) {
 	}
 }
 
-func TestMoveMaskByteU8x16(t *testing.T) {
+func TestMoveByteMaskU8x16(t *testing.T) {
 	tests := []struct {
 		a [16]uint8
 	}{
@@ -36,8 +36,8 @@ func TestMoveMaskByteU8x16(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		expected := referenceMoveMaskByteU8x16(test.a)
-		got := simd.MovMaskByteU8x16(test.a)
+		expected := referenceMoveByteMaskU8x16(test.a)
+		got := simd.MoveByteMaskU8x16(test.a)
 
 		if expected != got {
 			t.Fatalf("expected %d, got %d\n", expected, got)
